@@ -1,0 +1,101 @@
+version: "3.1"
+
+# ---------------------------------------------------------------------------
+# Données d'entraînement NLU (français).
+# Le numéro de contrat est extrait par regex (6 chiffres commençant par 5)
+# pour une fiabilité totale — voir RegexEntityExtractor dans config.yml.
+# ---------------------------------------------------------------------------
+
+nlu:
+- regex: numero_contrat
+  examples: |
+    - \b5\d{5}\b
+
+- intent: saluer
+  examples: |
+    - bonjour
+    - salut
+    - bonsoir
+    - hello
+    - salam
+    - coucou
+    - bonjour, j'ai besoin d'aide
+    - salut, vous pouvez m'aider ?
+    - bonjour madame
+    - bonjour monsieur
+
+- intent: au_revoir
+  examples: |
+    - au revoir
+    - à bientôt
+    - bonne journée
+    - bye
+    - c'est tout merci
+    - je n'ai plus besoin d'aide
+    - à plus tard
+    - bonne soirée
+
+- intent: remercier
+  examples: |
+    - merci
+    - merci beaucoup
+    - c'est gentil merci
+    - parfait merci
+    - super, merci
+    - merci pour votre aide
+    - top merci
+
+- intent: consulter_facture
+  examples: |
+    - je veux consulter ma facture
+    - quel est le montant de ma facture ?
+    - combien je dois payer ce mois ?
+    - je veux voir ma facture d'eau
+    - montant de ma facture d'électricité
+    - c'est combien ma facture ?
+    - je veux connaître le montant de ma dernière facture
+    - consulter ma facture
+    - voir le montant de ma facture
+    - ma facture du contrat [500123](numero_contrat)
+    - combien je dois pour le contrat [500456](numero_contrat) ?
+    - je veux ma facture, mon contrat est le [500789](numero_contrat)
+    - quel est le solde de mon compte ?
+    - est-ce que j'ai des factures impayées ?
+    - je veux vérifier ma facture
+
+- intent: payer_facture
+  examples: |
+    - je veux payer ma facture
+    - comment payer ma facture ?
+    - où est-ce que je peux régler ma facture ?
+    - payer une facture
+    - comment régler ma facture en ligne ?
+    - je souhaite payer ma facture d'eau
+    - paiement de facture
+    - régler ma facture d'électricité
+    - est-ce que je peux payer en ligne ?
+    - comment faire pour payer ?
+
+- intent: signaler_fuite
+  examples: |
+    - je veux signaler une fuite
+    - il y a une fuite d'eau dans ma rue
+    - fuite d'eau devant chez moi
+    - je constate une fuite sur le compteur
+    - signaler une fuite d'eau
+    - il y a une panne d'électricité dans mon quartier
+    - coupure de courant chez moi
+    - je n'ai plus d'électricité
+    - plus d'eau à la maison
+    - signaler une panne
+    - il y a un problème sur le réseau
+    - le compteur fait un bruit bizarre et il y a de l'eau partout
+
+- intent: donner_numero_contrat
+  examples: |
+    - [500123](numero_contrat)
+    - mon numéro de contrat est [500456](numero_contrat)
+    - c'est le [500789](numero_contrat)
+    - numéro [500321](numero_contrat)
+    - le contrat [500654](numero_contrat)
+    - voilà : [500987](numero_contrat)

@@ -1,0 +1,10 @@
+venv_rasa/
+venv_rag/
+__pycache__/
+*.pyc
+rasa_bot/models/
+rasa_bot/.rasa/
+rag_service/chroma_db/
+rag_service/corpus/*.txt
+database/amendis.db
+.streamlit/

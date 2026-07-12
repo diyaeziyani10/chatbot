@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Documentation — Chatbot Amendis</title>
+<style>
+  @page { size: A4; margin: 2cm 1.8cm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Calibri, Arial, sans-serif;
+    font-size: 10.5pt; line-height: 1.55; color: #1a2430; margin: 0;
+  }
+  h1 { font-size: 20pt; color: #0b5394; margin: 0 0 4px; }
+  h2 {
+    font-size: 14pt; color: #0b5394; margin: 28px 0 10px;
+    border-bottom: 2px solid #0b5394; padding-bottom: 4px;
+    page-break-after: avoid;
+  }
+  h3 { font-size: 11.5pt; color: #134f5c; margin: 18px 0 6px; page-break-after: avoid; }
+  h4 { font-size: 10.5pt; color: #134f5c; margin: 14px 0 4px; page-break-after: avoid; }
+  p { margin: 6px 0; text-align: justify; }
+  .cover { text-align: center; padding-top: 160px; page-break-after: always; }
+  .cover h1 { font-size: 26pt; }
+  .cover .sub { font-size: 14pt; color: #444; margin-top: 10px; }
+  .cover .meta { margin-top: 120px; font-size: 11pt; color: #333; }
+  code, .file {
+    font-family: Consolas, "Courier New", monospace; font-size: 9.5pt;
+    background: #eef3f8; padding: 1px 4px; border-radius: 3px; color: #0b3d62;
+  }
+  pre {
+    font-family: Consolas, monospace; font-size: 8.8pt; background: #f4f7fa;
+    border: 1px solid #d5e0ea; border-radius: 5px; padding: 10px 12px;
+    overflow-x: auto; line-height: 1.4; page-break-inside: avoid;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; page-break-inside: avoid; }
+  th, td { border: 1px solid #b9c9d6; padding: 5px 8px; vertical-align: top; font-size: 9.5pt; }
+  th { background: #dbe8f3; color: #0b3d62; text-align: left; }
+  tr:nth-child(even) td { background: #f6f9fb; }
+  .note {
+    background: #fff8e1; border-left: 4px solid #f0a500;
+    padding: 8px 12px; margin: 10px 0; font-size: 9.8pt; page-break-inside: avoid;
+  }
+  .ok {
+    background: #e8f5e9; border-left: 4px solid #2e7d32;
+    padding: 8px 12px; margin: 10px 0; font-size: 9.8pt; page-break-inside: avoid;
+  }
+  ul, ol { margin: 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  .pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<!-- ======================= PAGE DE GARDE ======================= -->
+<div class="cover">
+  <h1>Chatbot Amendis</h1>
+  <div class="sub">Documentation technique de mise en place du projet</div>
+  <div class="sub" style="font-size:11pt; margin-top:30px;">
+    Environnement, architecture, explication de Rasa et du RAG,<br>
+    et description détaillée de chaque fichier du projet
+  </div>
+  <div class="meta">
+    Réalisé par : <b>Diyae ZIYANI</b><br>
+    Encadré par : Mr. Otman TRIATE<br>
+    Stage d'observation — Juillet 2026
+  </div>
+</div>
+
+<!-- ======================= 1. VUE D'ENSEMBLE ======================= -->
+<h2>1. Vue d'ensemble du projet</h2>
+<p>
+L'objectif est de développer un <b>Proof of Concept (PoC)</b> de chatbot d'assistance client
+pour Amendis (distribution d'eau et d'électricité à Tanger et Tétouan). Le bot combine
+deux « cerveaux » complémentaires :
+</p>
+<ul>
+  <li><b>Un cerveau à règles strictes (Rasa)</b> : il reconnaît les demandes métier prévues
+      (consulter une facture, payer, signaler une fuite...) et exécute des procédures
+      déterministes, notamment l'interrogation d'une base de données locale SQLite qui
+      simule le système d'information client d'Amendis.</li>
+  <li><b>Un cerveau documentaire (RAG)</b> : quand la question sort des scénarios prévus
+      (« comment résilier mon contrat ? », « comment est calculée ma consommation ? »),
+      un système de <i>Retrieval-Augmented Generation</i> cherche la réponse dans un corpus
+      constitué par scraping du site public <b>www.amendis.ma</b>, et la formule en langage
+      naturel via un LLM local.</li>
+</ul>
+<p>
+<b>Adaptation par rapport au cahier des charges initial</b> : la source documentaire n'est pas
+un ensemble de fichiers PDF mais le contenu du site web public d'Amendis. Le second site,
+<b>www.amendisclient.ma</b> (espace client), est une application JavaScript accessible uniquement
+après connexion : il ne peut pas servir de source documentaire. Il joue donc le rôle du
+<b>système que notre base SQLite simule</b>, et le bot y <b>redirige</b> l'utilisateur pour les
+actions réelles (paiement en ligne).
+</p>
+
+<h3>Règle de sécurité fondamentale</h3>
+<p>
+Les données clients (numéros de contrat, montants de factures) sont traitées <b>uniquement en
+local</b> par le code Python et SQLite. Elles ne transitent <b>jamais</b> par le LLM. Seul le texte
+des questions générales (sans données personnelles) est envoyé au pipeline RAG — qui tourne
+lui aussi entièrement en local.
+</p>
+
+<!-- ======================= 2. INSTALLATIONS ======================= -->
+<h2 class="pagebreak">2. Ce qui a été téléchargé et installé</h2>
+
+<h3>2.1. Python 3.10.11</h3>
+<p>
+Aucun Python n'était installé sur la machine. Nous avons installé <b>Python 3.10.11</b>
+(via le gestionnaire de paquets Windows <code>winget</code>). Ce choix de version n'est pas
+anodin : <b>Rasa 3.6 ne fonctionne qu'avec Python 3.8 à 3.10</b>. Une version plus récente
+(3.12, 3.13) aurait empêché l'installation de Rasa.
+</p>
+
+<h3>2.2. Deux environnements virtuels — pourquoi ?</h3>
+<p>
+Un <b>environnement virtuel</b> (venv) est une copie isolée de Python avec ses propres
+bibliothèques : cela évite que les dépendances d'un projet entrent en conflit avec celles
+d'un autre. Ici, nous avons dû créer <b>deux</b> venvs dans le même projet, pour une raison
+technique précise :
+</p>
+<div class="note">
+<b>Conflit pydantic v1 / v2.</b> Rasa 3.6 exige la bibliothèque <code>pydantic</code> en version 1,
+alors que LangChain (le framework du RAG) exige <code>pydantic</code> version 2. Les deux ne peuvent
+pas coexister dans le même environnement. La solution : deux venvs séparés, et le RAG exposé
+comme un <b>micro-service HTTP local</b> que Rasa appelle. Cette contrainte technique rejoint
+d'ailleurs l'exigence du cahier des charges : <i>« séparation de la logique métier et de
+l'IA générative »</i>.
+</div>
+
+<h3>2.3. venv_rasa — le moteur de dialogue</h3>
+<table>
+  <tr><th>Bibliothèque</th><th>Rôle</th></tr>
+  <tr><td><code>rasa 3.6.21</code></td>
+      <td>Framework open source complet de chatbot : compréhension du langage naturel (NLU),
+          gestion du dialogue, serveur API. C'est la dernière version open source stable.</td></tr>
+  <tr><td><code>rasa-sdk 3.6.2</code></td>
+      <td>Kit de développement pour écrire les <i>Custom Actions</i> (notre code Python métier,
+          exécuté par un serveur d'actions séparé sur le port 5055).</td></tr>
+</table>
+
+<h3>2.4. venv_rag — le pipeline documentaire et l'interface</h3>
+<table>
+  <tr><th>Bibliothèque</th><th>Rôle</th></tr>
+  <tr><td><code>requests</code></td><td>Effectuer les requêtes HTTP (téléchargement des pages du site Amendis).</td></tr>
+  <tr><td><code>beautifulsoup4</code> + <code>lxml</code></td>
+      <td>Analyser le HTML des pages téléchargées et en extraire le texte utile
+          (en supprimant menus, pieds de page, scripts...).</td></tr>
+  <tr><td><code>langchain</code> (+ <code>community</code>, <code>text-splitters</code>)</td>
+      <td>Framework qui orchestre le pipeline RAG : découpage des textes, connexion à la base
+          vectorielle, construction du prompt, appel du LLM.</td></tr>
+  <tr><td><code>sentence-transformers</code></td>
+      <td>Modèles d'<i>embeddings</i> : transforment un texte en vecteur numérique qui capture
+          son sens. Nous utilisons un modèle <b>multilingue</b> (compatible français) exécuté
+          en local, sans envoyer de données dans le cloud.</td></tr>
+  <tr><td><code>chromadb</code></td>
+      <td>Base de données <b>vectorielle</b> : stocke les fragments de texte et leurs vecteurs,
+          et retrouve en quelques millisecondes les fragments les plus proches d'une question.</td></tr>
+  <tr><td><code>langchain-ollama</code></td>
+      <td>Connecteur vers <b>Ollama</b>, le logiciel qui fait tourner un LLM en local.</td></tr>
+  <tr><td><code>fastapi</code> + <code>uvicorn</code></td>
+      <td>Créer et servir la petite API HTTP du service RAG (port 8000), appelée par Rasa.</td></tr>
+  <tr><td><code>streamlit</code></td>
+      <td>Framework Python pour créer l'interface web de chat sans écrire de HTML/JavaScript.</td></tr>
+</table>
+
+<h3>2.5. Reste à installer : Ollama</h3>
+<p>
+<b>Ollama</b> est un logiciel gratuit qui exécute des LLM open source directement sur le PC
+(sans clé API, sans envoyer de données à l'extérieur). Il faudra le télécharger depuis
+<code>https://ollama.com</code>, puis récupérer un modèle léger avec la commande
+<code>ollama pull llama3.2</code> (~2 Go). C'est ce modèle qui rédigera les réponses
+documentaires du RAG.
+</p>
+
+<!-- ======================= 3. RASA ======================= -->
+<h2 class="pagebreak">3. Comprendre Rasa</h2>
+<p>
+<b>Rasa Open Source</b> est un framework Python de référence pour construire des assistants
+conversationnels. Contrairement à un LLM type ChatGPT qui « improvise » ses réponses, Rasa
+est <b>déterministe</b> : il classe le message de l'utilisateur dans des catégories apprises,
+puis suit des règles de dialogue écrites par le développeur. C'est exactement ce qu'il faut
+pour les procédures sensibles (consultation de données clients), où l'on ne peut pas se
+permettre d'improvisation.
+</p>
+
+<h3>3.1. Les concepts clés</h3>
+<table>
+  <tr><th>Concept</th><th>Définition</th><th>Exemple dans notre projet</th></tr>
+  <tr><td><b>Intention</b> (intent)</td>
+      <td>La catégorie de ce que veut l'utilisateur, détectée à partir de sa phrase.</td>
+      <td>« combien je dois payer ce mois ? » → intention <code>consulter_facture</code></td></tr>
+  <tr><td><b>Entité</b> (entity)</td>
+      <td>Une information précise extraite de la phrase.</td>
+      <td>« ma facture du contrat 500123 » → entité <code>numero_contrat = 500123</code></td></tr>
+  <tr><td><b>Slot</b></td>
+      <td>La « mémoire » du bot : une variable conservée pendant la conversation.</td>
+      <td>Le numéro de contrat est stocké dans le slot <code>numero_contrat</code>.</td></tr>
+  <tr><td><b>Formulaire</b> (form)</td>
+      <td>Mécanisme qui pose des questions jusqu'à obtenir toutes les informations requises.</td>
+      <td><code>facture_form</code> réclame le numéro de contrat s'il n'a pas été donné.</td></tr>
+  <tr><td><b>Réponse</b> (response / utterance)</td>
+      <td>Un message prédéfini que le bot peut envoyer.</td>
+      <td><code>utter_payer_facture</code> liste les moyens de paiement.</td></tr>
+  <tr><td><b>Custom Action</b></td>
+      <td>Du code Python exécuté quand un simple message prédéfini ne suffit pas.</td>
+      <td><code>action_consulter_facture</code> interroge la base SQLite.</td></tr>
+  <tr><td><b>Règle</b> (rule)</td>
+      <td>Un enchaînement court et <b>toujours identique</b> : « si intention X, faire Y ».</td>
+      <td>« si <code>nlu_fallback</code> → appeler <code>action_rag_fallback</code> »</td></tr>
+  <tr><td><b>Story</b></td>
+      <td>Un exemple de conversation complète, utilisé pour apprendre les dialogues flexibles.</td>
+      <td>salutation → consultation facture → remerciement → au revoir</td></tr>
+</table>
+
+<h3>3.2. Comment Rasa comprend une phrase : le pipeline NLU</h3>
+<p>
+Quand un message arrive, il traverse une chaîne de composants définie dans
+<span class="file">config.yml</span> :
+</p>
+<ol>
+  <li><b>WhitespaceTokenizer</b> — découpe la phrase en mots.</li>
+  <li><b>Featurizers</b> (Regex, LexicalSyntactic, CountVectors) — transforment les mots en
+      caractéristiques numériques. Le CountVectors en « n-grammes de caractères » (fragments
+      de 1 à 4 lettres) rend le bot <b>tolérant aux fautes d'orthographe</b>, fréquentes dans
+      un chat client.</li>
+  <li><b>DIETClassifier</b> — le cœur : un réseau de neurones (Dual Intent and Entity
+      Transformer) entraîné sur nos exemples de <span class="file">nlu.yml</span>, qui prédit
+      <b>l'intention</b> de la phrase avec un <b>score de confiance</b> entre 0 et 1.</li>
+  <li><b>RegexEntityExtractor</b> — extrait le numéro de contrat par expression régulière
+      (6 chiffres commençant par 5). Une regex est fiable à 100 %, contrairement à un
+      apprentissage statistique : choix volontaire pour une donnée sensible.</li>
+  <li><b>FallbackClassifier</b> — si la meilleure intention a une confiance
+      <b>inférieure à 0,6</b>, il remplace la prédiction par l'intention spéciale
+      <code>nlu_fallback</code>. C'est <b>le pont vers le RAG</b> : une règle associe
+      <code>nlu_fallback</code> à l'action qui interroge la documentation.</li>
+</ol>
+
+<h3>3.3. Comment Rasa décide quoi répondre : les policies</h3>
+<ul>
+  <li><b>RulePolicy</b> — applique les règles de <span class="file">rules.yml</span> en priorité
+      (dialogue déterministe exigé par le cahier des charges).</li>
+  <li><b>MemoizationPolicy</b> — reconnaît les conversations identiques aux stories d'entraînement.</li>
+  <li><b>TEDPolicy</b> — réseau de neurones qui généralise à partir des stories pour gérer
+      les conversations qui s'écartent un peu des exemples.</li>
+</ul>
+
+<h3>3.4. L'architecture d'exécution de Rasa</h3>
+<p>Rasa fonctionne avec <b>deux serveurs</b> :</p>
+<ul>
+  <li>Le <b>serveur Rasa</b> (port 5005) : reçoit les messages, exécute NLU + dialogue,
+      expose l'API REST utilisée par notre interface Streamlit.</li>
+  <li>Le <b>serveur d'actions</b> (port 5055) : exécute notre code Python
+      (<span class="file">actions.py</span>). Rasa l'appelle en HTTP quand une custom action
+      est nécessaire (adresse déclarée dans <span class="file">endpoints.yml</span>).</li>
+</ul>
+
+<!-- ======================= 4. RAG ======================= -->
+<h2 class="pagebreak">4. Comprendre le RAG (Retrieval-Augmented Generation)</h2>
+<p>
+Un LLM seul peut « halluciner » : inventer des tarifs, des procédures, des numéros de
+téléphone. Le RAG corrige ce défaut en forçant le modèle à répondre <b>uniquement à partir
+de documents fournis</b>. Notre pipeline se déroule en deux phases :
+</p>
+
+<h3>4.1. Phase de préparation (hors ligne, à refaire quand le site change)</h3>
+<ol>
+  <li><b>Scraping</b> (<span class="file">scraper.py</span>) : un crawler télécharge les pages
+      publiques de www.amendis.ma (FAQ, services, conseils...), en extrait le texte propre et
+      le sauvegarde dans <span class="file">corpus/</span> — un fichier texte par page, avec
+      l'URL source en en-tête.</li>
+  <li><b>Découpage</b> (<span class="file">ingest.py</span>) : chaque page est découpée en
+      fragments d'environ 800 caractères (avec 120 caractères de chevauchement pour ne pas
+      couper une idée en deux).</li>
+  <li><b>Vectorisation</b> : chaque fragment passe dans le modèle d'embeddings multilingue,
+      qui produit un vecteur de 384 nombres représentant son <i>sens</i>. Deux textes qui
+      parlent de la même chose ont des vecteurs proches, même s'ils n'emploient pas les
+      mêmes mots.</li>
+  <li><b>Indexation</b> : les fragments et leurs vecteurs sont stockés dans la base
+      vectorielle <b>ChromaDB</b> (dossier <span class="file">chroma_db/</span>).</li>
+</ol>
+
+<h3>4.2. Phase de réponse (en ligne, à chaque question hors scénario)</h3>
+<ol>
+  <li>La question de l'utilisateur est vectorisée à son tour.</li>
+  <li>ChromaDB retrouve les <b>4 fragments les plus proches</b> sémantiquement.</li>
+  <li>Ces fragments sont insérés dans un <b>prompt strict</b> qui impose au LLM :
+      répondre uniquement à partir des extraits, ne jamais inventer de chiffres, et dire
+      explicitement « je n'ai pas trouvé cette information » si les extraits ne suffisent pas.
+      C'est notre réponse à la contrainte <b>« zéro hallucination »</b> du cahier des charges.</li>
+  <li>Le LLM (Ollama, en local) rédige la réponse en français, renvoyée à Rasa puis à
+      l'utilisateur, avec les URL sources.</li>
+</ol>
+
+<!-- ======================= 5. ARCHITECTURE ======================= -->
+<h2 class="pagebreak">5. Architecture générale et parcours d'un message</h2>
+<pre>
+                        ┌─────────────────────┐
+  Utilisateur ──────────►  Front-end Streamlit │  (port 8501)
+                        └─────────┬───────────┘
+                                  │ API REST (port 5005)
+                        ┌─────────▼───────────┐      ┌──────────────────┐
+                        │   Serveur Rasa       │─────►│ Serveur d'actions │
+                        │   (NLU + dialogue)   │ 5055 │   actions.py      │
+                        └─────────┬───────────┘      └────────┬─────────┘
+                                  │ fallback                   │ SQL local
+                                  │ (confiance &lt; 0,6)          ▼
+                        ┌─────────▼───────────┐      ┌──────────────────┐
+                        │   Service RAG        │      │  SQLite           │
+                        │   FastAPI (8000)     │      │  amendis.db       │
+                        │   LangChain + Ollama │      └──────────────────┘
+                        └─────────┬───────────┘
+                                  │ corpus vectorisé (ChromaDB)
+                                  ▼
+                     pages scrapées de www.amendis.ma
+</pre>
+
+<h3>Exemple 1 — scénario métier strict</h3>
+<ol>
+  <li>L'utilisateur écrit : <i>« combien je dois payer ce mois ? »</i></li>
+  <li>Le NLU détecte <code>consulter_facture</code> (confiance 0,93) — pas de numéro de contrat dans la phrase.</li>
+  <li>Le formulaire <code>facture_form</code> s'active et demande le numéro de contrat.</li>
+  <li>L'utilisateur répond <i>« 500123 »</i> ; la regex extrait l'entité, la validation vérifie le format.</li>
+  <li><code>action_consulter_facture</code> interroge SQLite et répond :
+      <i>« Dernière facture — juin 2026 : 312,80 DH (en attente de paiement) »</i>.</li>
+  <li>Aucune donnée n'a quitté la machine ; le LLM n'a jamais été sollicité.</li>
+</ol>
+
+<h3>Exemple 2 — question documentaire (fallback RAG)</h3>
+<ol>
+  <li>L'utilisateur écrit : <i>« comment résilier mon contrat ? »</i></li>
+  <li>Aucune intention ne dépasse 0,6 de confiance → <code>nlu_fallback</code>.</li>
+  <li>La règle de fallback déclenche <code>action_rag_fallback</code>, qui envoie la question
+      (et uniquement la question) au service RAG.</li>
+  <li>Le RAG retrouve les passages de la FAQ Amendis sur la résiliation et le LLM rédige
+      une réponse fidèle à ces passages, avec l'URL source.</li>
+</ol>
+
+<!-- ======================= 6. ARBORESCENCE ======================= -->
+<h2 class="pagebreak">6. L'arborescence du projet, fichier par fichier</h2>
+
+<pre>
+chatbot/
+├── README.md                  ├── venv_rasa/          (environnement Rasa)
+├── .gitignore                 ├── venv_rag/           (environnement RAG/front)
+├── requirements-rasa.txt
+├── rasa_bot/                  ← LE CERVEAU RASA
+│   ├── config.yml             ├── domain.yml          ├── endpoints.yml
+│   ├── credentials.yml        ├── data/nlu.yml        ├── data/rules.yml
+│   ├── data/stories.yml       └── actions/actions.py
+├── database/
+│   ├── init_db.py             └── amendis.db
+├── rag_service/               ← LE CERVEAU DOCUMENTAIRE
+│   ├── requirements.txt       ├── scraper.py          ├── ingest.py
+│   ├── rag_api.py             ├── corpus/             └── chroma_db/
+├── frontend/
+│   └── app.py
+└── docs/
+    └── (le présent document)
+</pre>
+
+<h3>Racine du projet</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle détaillé</th></tr>
+  <tr><td><span class="file">README.md</span></td>
+      <td>Guide du projet : schéma d'architecture, explication des deux venvs, commandes
+          d'installation pas à pas et commandes de lancement des 4 serveurs.</td></tr>
+  <tr><td><span class="file">.gitignore</span></td>
+      <td>Liste ce que Git doit ignorer si le projet est versionné : les venvs (des giga-octets
+          reconstructibles), les modèles Rasa entraînés, l'index ChromaDB, la base SQLite —
+          tout ce qui se régénère à partir du code.</td></tr>
+  <tr><td><span class="file">requirements-rasa.txt</span></td>
+      <td>Dépendances du venv Rasa (rasa 3.6.21 + rasa-sdk 3.6.2), versions épinglées pour la
+          reproductibilité.</td></tr>
+</table>
+
+<h3>rasa_bot/ — le moteur NLU et de dialogue</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle détaillé</th></tr>
+  <tr><td><span class="file">config.yml</span></td>
+      <td>La « recette » d'entraînement : le pipeline NLU (tokenizer, featurizers,
+          DIETClassifier 100 époques, RegexEntityExtractor, FallbackClassifier avec seuil 0,6)
+          et les policies de dialogue (Rule, Memoization, TED). Langue : <code>fr</code>.
+          C'est ici que se règle la sensibilité du fallback : baisser le seuil rend le bot plus
+          « sûr de lui », le monter envoie plus de questions vers le RAG.</td></tr>
+  <tr><td><span class="file">domain.yml</span></td>
+      <td>La « carte d'identité » du bot : la liste des 8 intentions (5 métier + salutations/
+          remerciements/fallback), l'entité et le slot <code>numero_contrat</code>, le formulaire
+          <code>facture_form</code>, les réponses prédéfinies (textes d'accueil, moyens de
+          paiement, au revoir...) et la déclaration des 4 actions personnalisées. Tout ce qui
+          n'est pas déclaré ici n'existe pas pour Rasa.</td></tr>
+  <tr><td><span class="file">data/nlu.yml</span></td>
+      <td>Les <b>exemples d'entraînement</b> : ~70 phrases françaises réparties par intention
+          (« combien je dois payer ce mois ? », « il y a une fuite d'eau dans ma rue »...),
+          plus la regex du numéro de contrat. Les entités sont annotées entre crochets dans
+          les exemples. Plus on ajoute d'exemples variés, plus le NLU est précis : c'est le
+          fichier à enrichir en priorité pendant la phase de test.</td></tr>
+  <tr><td><span class="file">data/rules.yml</span></td>
+      <td>Les <b>dialogues déterministes</b> : saluer → message d'accueil ; payer_facture →
+          explication des moyens de paiement ; signaler_fuite → enregistrement de l'incident ;
+          consulter_facture → activation du formulaire puis appel de l'action SQLite ;
+          <b>nlu_fallback → action_rag_fallback</b> (la règle qui branche le RAG).</td></tr>
+  <tr><td><span class="file">data/stories.yml</span></td>
+      <td>Trois conversations complètes d'exemple (consultation directe avec numéro, consultation
+          en deux temps, signalement puis question documentaire) pour entraîner la TEDPolicy à
+          gérer les enchaînements flexibles.</td></tr>
+  <tr><td><span class="file">endpoints.yml</span></td>
+      <td>Indique au serveur Rasa où joindre le serveur d'actions : <code>http://localhost:5055/webhook</code>.</td></tr>
+  <tr><td><span class="file">credentials.yml</span></td>
+      <td>Active le canal <b>REST</b>, c'est-à-dire l'API HTTP que le front Streamlit utilise
+          pour envoyer les messages des utilisateurs.</td></tr>
+  <tr><td><span class="file">actions/actions.py</span></td>
+      <td>Le <b>code métier</b>, 4 classes :
+          <ul>
+            <li><code>ValidateFactureForm</code> — valide le format du numéro de contrat saisi
+                (regex <code>5\d{5}</code>) et redemande poliment en cas d'erreur ;</li>
+            <li><code>ActionConsulterFacture</code> — requête SQL <b>paramétrée</b> (protection
+                contre l'injection SQL) qui joint clients et factures et renvoie la dernière
+                facture avec son statut ;</li>
+            <li><code>ActionSignalerFuite</code> — insère le signalement dans la table
+                <code>incidents</code> et renvoie un numéro de référence ;</li>
+            <li><code>ActionRagFallback</code> — envoie la question au service RAG
+                (<code>POST localhost:8000/ask</code>) et relaie la réponse ; gère aussi le cas
+                où le service est éteint.</li>
+          </ul></td></tr>
+</table>
+
+<h3 class="pagebreak">database/ — la simulation du SI client</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle détaillé</th></tr>
+  <tr><td><span class="file">init_db.py</span></td>
+      <td>Script qui (re)crée <span class="file">amendis.db</span> : trois tables —
+          <code>clients</code> (numéro de contrat, nom, adresse, type de service),
+          <code>factures</code> (mois, montant en DH, statut payée/impayée) et
+          <code>incidents</code> (alimentée par les signalements du bot) — puis les remplit
+          avec 5 clients et 7 factures fictifs pour la démonstration.</td></tr>
+  <tr><td><span class="file">amendis.db</span></td>
+      <td>La base SQLite elle-même : un simple fichier, aucun serveur à installer, embarquée
+          dans Python. Elle simule l'espace client amendisclient.ma.</td></tr>
+</table>
+
+<h3>rag_service/ — le pipeline documentaire</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle détaillé</th></tr>
+  <tr><td><span class="file">requirements.txt</span></td>
+      <td>Dépendances du venv RAG (LangChain, ChromaDB, sentence-transformers, FastAPI,
+          Streamlit, BeautifulSoup...).</td></tr>
+  <tr><td><span class="file">scraper.py</span></td>
+      <td>Le <b>crawler</b> de www.amendis.ma. Il part de pages graines (accueil, FAQ), suit
+          uniquement les liens internes en <code>/fr</code>, se limite à 60 pages, attend
+          1 seconde entre chaque requête (politesse), supprime les balises non informatives
+          (menus, scripts, pieds de page) et sauvegarde chaque page en fichier texte dans
+          <span class="file">corpus/</span> avec son URL source en première ligne — ce qui
+          permettra de citer les sources dans les réponses.</td></tr>
+  <tr><td><span class="file">ingest.py</span></td>
+      <td>La <b>vectorisation</b> : charge le corpus, le découpe en fragments de 800 caractères
+          (chevauchement 120), calcule les embeddings avec le modèle multilingue
+          <code>paraphrase-multilingual-MiniLM-L12-v2</code> (exécuté en local) et construit
+          l'index ChromaDB persistant. À relancer après chaque mise à jour du corpus — c'est
+          la fonction « Administrateur » du cahier des charges (section 3.2.1).</td></tr>
+  <tr><td><span class="file">rag_api.py</span></td>
+      <td>Le <b>service de réponse</b> (FastAPI, port 8000). Endpoint <code>POST /ask</code> :
+          vectorise la question, récupère les 4 fragments les plus pertinents dans ChromaDB,
+          les insère dans le prompt strict anti-hallucination, appelle le LLM local via Ollama
+          (température 0 = réponses les plus factuelles possibles) et renvoie la réponse avec
+          les URL sources. Endpoint <code>GET /health</code> pour vérifier que le service tourne.</td></tr>
+  <tr><td><span class="file">corpus/</span></td>
+      <td>Les pages scrapées (un fichier .txt par page). C'est la « base documentaire » du bot.</td></tr>
+  <tr><td><span class="file">chroma_db/</span></td>
+      <td>L'index vectoriel persistant généré par ingest.py (créé au premier lancement).</td></tr>
+</table>
+
+<h3>frontend/ — l'interface utilisateur</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle détaillé</th></tr>
+  <tr><td><span class="file">app.py</span></td>
+      <td>L'interface de chat <b>Streamlit</b> : zone de saisie libre, historique de la
+          conversation avec bulles utilisateur/assistant, <b>barre latérale de sujets
+          fréquents</b> cliquables (exigence « accueil automatisé » du cahier des charges,
+          section 3.1.1), et identifiant de session unique (UUID) pour que Rasa suive chaque
+          conversation séparément. Communique avec Rasa via
+          <code>POST localhost:5005/webhooks/rest/webhook</code> et affiche un message clair
+          si le serveur n'est pas lancé.</td></tr>
+</table>
+
+<!-- ======================= 7. SÉCURITÉ ======================= -->
+<h2>7. Réponse aux contraintes du cahier des charges</h2>
+<table>
+  <tr><th>Contrainte</th><th>Comment le projet y répond</th></tr>
+  <tr><td><b>Sécurité des données</b></td>
+      <td>Les numéros de contrat et montants sont traités uniquement dans
+          <code>actions.py</code> + SQLite, en local. Le LLM ne reçoit que le texte des
+          questions générales. Requêtes SQL paramétrées (anti-injection), numéro de contrat
+          validé par regex avant toute requête.</td></tr>
+  <tr><td><b>Zéro hallucination</b></td>
+      <td>Prompt strict (répondre uniquement d'après les extraits, aveu d'ignorance
+          obligatoire sinon), température 0, LLM local, et sources citées avec chaque réponse.</td></tr>
+  <tr><td><b>Délai de 4 semaines</b></td>
+      <td>Squelette complet opérationnel dès la semaine 1 ; les semaines suivantes servent à
+          enrichir les données NLU, affiner le corpus et tester.</td></tr>
+  <tr><td><b>Déploiement optionnel</b></td>
+      <td>L'API REST de Rasa est le point d'intégration standard : le front Streamlit pourra
+          être remplacé par un widget sur le site officiel sans toucher au cœur du bot.</td></tr>
+</table>
+
+<!-- ======================= 8. PROCHAINES ÉTAPES ======================= -->
+<h2>8. État actuel et prochaines étapes</h2>
+<div class="ok">
+<b>Fait :</b> Python 3.10.11 installé · structure complète du projet écrite (14 fichiers) ·
+base SQLite créée et peuplée · installation des deux venvs lancée.
+</div>
+<ol>
+  <li>Finaliser l'installation des deux venvs (en cours).</li>
+  <li>Installer <b>Ollama</b> et télécharger le modèle <code>llama3.2</code>.</li>
+  <li>Lancer le scraper puis l'ingestion : <code>python rag_service/scraper.py</code> puis
+      <code>python rag_service/ingest.py</code>.</li>
+  <li>Entraîner le modèle Rasa : <code>rasa train</code> (dans <span class="file">rasa_bot/</span>).</li>
+  <li>Tester en conditions réelles : les 4 serveurs + conversation complète, puis enrichir
+      <span class="file">nlu.yml</span> avec les formulations mal comprises.</li>
+</ol>
+
+</body>
+</html>

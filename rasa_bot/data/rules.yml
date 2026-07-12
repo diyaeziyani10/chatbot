@@ -1,0 +1,55 @@
+version: "3.1"
+
+# ---------------------------------------------------------------------------
+# Règles : dialogue déterministe pour les procédures sensibles
+# (exigence du cahier des charges, section 2.1)
+# ---------------------------------------------------------------------------
+
+rules:
+
+- rule: Saluer l'utilisateur
+  steps:
+  - intent: saluer
+  - action: utter_saluer
+
+- rule: Dire au revoir
+  steps:
+  - intent: au_revoir
+  - action: utter_au_revoir
+
+- rule: Répondre aux remerciements
+  steps:
+  - intent: remercier
+  - action: utter_remercier
+
+- rule: Expliquer comment payer une facture
+  steps:
+  - intent: payer_facture
+  - action: utter_payer_facture
+
+- rule: Enregistrer un signalement de fuite ou panne
+  steps:
+  - intent: signaler_fuite
+  - action: action_signaler_fuite
+
+- rule: Activer le formulaire de consultation de facture
+  steps:
+  - intent: consulter_facture
+  - action: facture_form
+  - active_loop: facture_form
+
+- rule: Consulter la facture une fois le numéro de contrat obtenu
+  condition:
+  - active_loop: facture_form
+  steps:
+  - action: facture_form
+  - active_loop: null
+  - slot_was_set:
+    - requested_slot: null
+  - action: action_consulter_facture
+
+# Toute question hors scénario → assistance documentaire (RAG)
+- rule: Fallback vers le RAG
+  steps:
+  - intent: nlu_fallback
+  - action: action_rag_fallback

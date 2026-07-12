@@ -1,0 +1,23 @@
+# Environnement venv_rag — scraping, pipeline RAG et front-end
+# (separe de Rasa a cause du conflit pydantic v1 / v2)
+
+# Scraping du site amendis.ma
+requests
+beautifulsoup4
+lxml
+
+# Pipeline RAG
+langchain
+langchain-community
+langchain-text-splitters
+langchain-ollama
+langchain-huggingface
+chromadb
+sentence-transformers
+
+# Service HTTP appele par l'action de fallback Rasa
+fastapi
+uvicorn
+
+# Front-end
+streamlit
