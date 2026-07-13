@@ -1,42 +1,20 @@
 version: "3.1"
 
 # ---------------------------------------------------------------------------
-# Stories : exemples de conversations complètes pour la politique TED
+# Stories : exemples de conversations complètes pour la politique TED.
+# Architecture documentaire : une conversation type mêle politesses et
+# questions documentaires (nlu_fallback → RAG).
 # ---------------------------------------------------------------------------
 
 stories:
 
-- story: consultation de facture avec numéro donné directement
+- story: politesse puis question documentaire
   steps:
   - intent: saluer
   - action: utter_saluer
-  - intent: consulter_facture
-    entities:
-    - numero_contrat: "500123"
-  - action: facture_form
-  - active_loop: facture_form
-  - active_loop: null
-  - action: action_consulter_facture
+  - intent: nlu_fallback
+  - action: action_rag_fallback
   - intent: remercier
   - action: utter_remercier
   - intent: au_revoir
   - action: utter_au_revoir
-
-- story: consultation de facture en deux temps
-  steps:
-  - intent: consulter_facture
-  - action: facture_form
-  - active_loop: facture_form
-  - intent: donner_numero_contrat
-    entities:
-    - numero_contrat: "500456"
-  - action: facture_form
-  - active_loop: null
-  - action: action_consulter_facture
-
-- story: signalement de fuite puis question documentaire
-  steps:
-  - intent: signaler_fuite
-  - action: action_signaler_fuite
-  - intent: nlu_fallback
-  - action: action_rag_fallback

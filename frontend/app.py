@@ -13,9 +13,9 @@ import streamlit as st
 RASA_URL = "http://localhost:5005/webhooks/rest/webhook"
 
 SUJETS_FREQUENTS = [
-    "Quel est le montant de ma facture ?",
     "Comment payer ma facture ?",
-    "Je veux signaler une fuite d'eau",
+    "Comment consulter ma consommation ?",
+    "Que faire en cas de fuite d'eau ?",
     "Comment résilier mon contrat ?",
 ]
 

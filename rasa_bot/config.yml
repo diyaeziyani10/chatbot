@@ -7,10 +7,6 @@ language: fr
 pipeline:
   - name: WhitespaceTokenizer
   - name: RegexFeaturizer
-  # RegexEntityExtractor : extraction du numéro de contrat par expression
-  # régulière (fiable à 100 %, pas d'apprentissage nécessaire)
-  - name: RegexEntityExtractor
-    use_regexes: true
   - name: LexicalSyntacticFeaturizer
   - name: CountVectorsFeaturizer
   - name: CountVectorsFeaturizer
@@ -20,11 +16,10 @@ pipeline:
   - name: DIETClassifier
     epochs: 100
     constrain_similarities: true
-  - name: EntitySynonymMapper
   # FallbackClassifier : si la confiance NLU est sous le seuil, l'intention
   # devient nlu_fallback → déclenche le RAG (voir rules.yml)
   - name: FallbackClassifier
-    threshold: 0.6
+    threshold: 0.75
     ambiguity_threshold: 0.1
 
 policies:

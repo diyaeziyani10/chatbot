@@ -1,46 +1,29 @@
 version: "3.1"
 
 # ---------------------------------------------------------------------------
-# Domaine du chatbot Amendis : intentions, entités, slots, réponses, actions.
-# Les 5 intentions métier + fallback RAG pour tout le reste.
+# Domaine du chatbot Amendis : intentions, réponses, actions.
+# Architecture 100 % documentaire : Rasa gère seulement les politesses ;
+# toute autre question passe sous le seuil de confiance → nlu_fallback → RAG.
 # ---------------------------------------------------------------------------
 
 intents:
   - saluer
   - au_revoir
   - remercier
-  - consulter_facture      # scénario strict → SQLite
-  - payer_facture          # redirection vers l'agence en ligne
-  - signaler_fuite         # enregistrement d'un incident
-  - donner_numero_contrat
-  - nlu_fallback           # hors scénario → RAG
-
-entities:
-  - numero_contrat
-
-slots:
-  numero_contrat:
-    type: text
-    influence_conversation: false
-    mappings:
-      - type: from_entity
-        entity: numero_contrat
-
-forms:
-  facture_form:
-    required_slots:
-      - numero_contrat
+  - question_documentaire  # intention « panier » : toute question Amendis → RAG
+  - nlu_fallback           # confiance faible (phrase inconnue) → RAG aussi
 
 responses:
   utter_saluer:
     - text: >-
         Bonjour ! 👋 Je suis l'assistant virtuel d'Amendis.
-        Je peux vous aider à :
-        • consulter le montant de votre facture
-        • payer une facture
-        • signaler une fuite ou une panne
-        • répondre à vos questions sur nos services (abonnement, résiliation, tarifs...)
-        Que puis-je faire pour vous ?
+        Je réponds à vos questions à partir des informations officielles
+        du site amendis.ma. Vous pouvez par exemple m'interroger sur :
+        • le paiement de vos factures
+        • l'abonnement ou le branchement (eau, électricité)
+        • une fuite d'eau ou une coupure
+        • nos agences et moyens de contact
+        Comment puis-je vous aider ?
 
   utter_au_revoir:
     - text: "Merci d'avoir utilisé l'assistance Amendis. À bientôt ! 👋"
@@ -48,29 +31,10 @@ responses:
   utter_remercier:
     - text: "Je vous en prie ! Puis-je vous aider pour autre chose ?"
 
-  utter_ask_numero_contrat:
-    - text: >-
-        Pour consulter votre facture, j'ai besoin de votre numéro de contrat
-        (il figure en haut de vos factures, ex : 500123).
-
-  utter_payer_facture:
-    - text: >-
-        Vous pouvez régler votre facture de plusieurs façons :
-        💻 En ligne, sur votre espace client : https://www.amendisclient.ma
-        🏢 Dans l'une de nos agences Amendis
-        🏪 Chez un point de paiement agréé (banques, guichets)
-        Le paiement en ligne est disponible 24h/24 et sans frais de déplacement.
-
-  utter_hors_sujet:
-    - text: >-
-        Je n'ai pas trouvé cette information dans la documentation Amendis.
-        Vous pouvez reformuler votre question ou contacter le service client.
-
+  
 actions:
-  - action_consulter_facture
-  - action_signaler_fuite
   - action_rag_fallback
-  - validate_facture_form
+
 
 session_config:
   session_expiration_time: 60

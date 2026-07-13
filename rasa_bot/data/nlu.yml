@@ -2,15 +2,15 @@ version: "3.1"
 
 # ---------------------------------------------------------------------------
 # Données d'entraînement NLU (français).
-# Le numéro de contrat est extrait par regex (6 chiffres commençant par 5)
-# pour une fiabilité totale — voir RegexEntityExtractor dans config.yml.
+# 3 intentions de politesse + une intention « panier » (question_documentaire)
+# qui capte les questions métier et les route vers le RAG. Les phrases
+# vraiment inconnues tombent sous le seuil → nlu_fallback → RAG aussi.
+# Pourquoi le panier ? Un softmax répartit 100 % de sa confiance entre les
+# classes connues : sans panier, une question métier peut être classée
+# « politesse » avec une confiance élevée (constaté : 0,94 sur remercier).
 # ---------------------------------------------------------------------------
 
 nlu:
-- regex: numero_contrat
-  examples: |
-    - \b5\d{5}\b
-
 - intent: saluer
   examples: |
     - bonjour
@@ -45,57 +45,25 @@ nlu:
     - merci pour votre aide
     - top merci
 
-- intent: consulter_facture
+- intent: question_documentaire
   examples: |
-    - je veux consulter ma facture
-    - quel est le montant de ma facture ?
-    - combien je dois payer ce mois ?
-    - je veux voir ma facture d'eau
-    - montant de ma facture d'électricité
-    - c'est combien ma facture ?
-    - je veux connaître le montant de ma dernière facture
-    - consulter ma facture
-    - voir le montant de ma facture
-    - ma facture du contrat [500123](numero_contrat)
-    - combien je dois pour le contrat [500456](numero_contrat) ?
-    - je veux ma facture, mon contrat est le [500789](numero_contrat)
-    - quel est le solde de mon compte ?
-    - est-ce que j'ai des factures impayées ?
-    - je veux vérifier ma facture
-
-- intent: payer_facture
-  examples: |
-    - je veux payer ma facture
     - comment payer ma facture ?
-    - où est-ce que je peux régler ma facture ?
-    - payer une facture
-    - comment régler ma facture en ligne ?
-    - je souhaite payer ma facture d'eau
-    - paiement de facture
-    - régler ma facture d'électricité
+    - je veux payer ma facture
+    - où régler ma facture ?
     - est-ce que je peux payer en ligne ?
-    - comment faire pour payer ?
-
-- intent: signaler_fuite
-  examples: |
-    - je veux signaler une fuite
+    - comment consulter ma consommation ?
+    - je veux comprendre ma facture
+    - comment souscrire un abonnement ?
+    - je veux un branchement d'eau
+    - comment résilier mon contrat ?
     - il y a une fuite d'eau dans ma rue
-    - fuite d'eau devant chez moi
-    - je constate une fuite sur le compteur
-    - signaler une fuite d'eau
-    - il y a une panne d'électricité dans mon quartier
-    - coupure de courant chez moi
-    - je n'ai plus d'électricité
-    - plus d'eau à la maison
-    - signaler une panne
-    - il y a un problème sur le réseau
-    - le compteur fait un bruit bizarre et il y a de l'eau partout
-
-- intent: donner_numero_contrat
-  examples: |
-    - [500123](numero_contrat)
-    - mon numéro de contrat est [500456](numero_contrat)
-    - c'est le [500789](numero_contrat)
-    - numéro [500321](numero_contrat)
-    - le contrat [500654](numero_contrat)
-    - voilà : [500987](numero_contrat)
+    - que faire en cas de coupure d'électricité ?
+    - je n'ai plus d'eau à la maison
+    - où se trouvent vos agences ?
+    - quels sont vos horaires d'ouverture ?
+    - comment contacter le service client ?
+    - qui est Amendis ?
+    - quelles sont les actualités d'Amendis ?
+    - quels sont les tarifs de l'eau ?
+    - comment faire une réclamation ?
+    - comment déplacer mon compteur ?

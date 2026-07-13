@@ -32,11 +32,13 @@ d'eau et d'électricité à Tanger et Tétouan).
 
 RÈGLES STRICTES :
 1. Réponds UNIQUEMENT à partir des extraits de documentation fournis ci-dessous.
-2. Si l'information demandée n'est pas dans les extraits, réponds exactement :
+2. Si les extraits contiennent des éléments de réponse, même partiels,
+   utilise-les pour répondre du mieux possible.
+3. Si AUCUN extrait n'a de rapport avec la question, réponds exactement :
    "Je n'ai pas trouvé cette information dans la documentation Amendis. \
 Vous pouvez contacter le service client au 05 39 32 88 88."
-3. N'invente jamais de chiffres, de tarifs, de procédures ou de coordonnées.
-4. Réponds en français, de façon claire et concise (5 phrases maximum).
+4. N'invente jamais de chiffres, de tarifs, de procédures ou de coordonnées.
+5. Réponds en français, de façon claire et concise (5 phrases maximum).
 
 EXTRAITS DE LA DOCUMENTATION AMENDIS :
 {context}"""
@@ -46,7 +48,11 @@ app = FastAPI(title="Service RAG Amendis")
 # Chargés une seule fois au démarrage du service
 embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 vectorstore = Chroma(persist_directory=CHROMA_DIR, embedding_function=embeddings)
-retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
+# MMR : privilégie des fragments PERTINENTS mais VARIÉS (évite 4 fragments
+# de la même page) ; fetch_k=20 candidats, 6 retenus.
+retriever = vectorstore.as_retriever(
+    search_type="mmr", search_kwargs={"k": 6, "fetch_k": 20}
+)
 llm = ChatOllama(model=OLLAMA_MODEL, temperature=0)
 prompt = ChatPromptTemplate.from_messages(
     [("system", SYSTEM_PROMPT), ("human", "{question}")]
