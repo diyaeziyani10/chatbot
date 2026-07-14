@@ -5,6 +5,6 @@ __pycache__/
 rasa_bot/models/
 rasa_bot/.rasa/
 rag_service/chroma_db/
+rag_service/.env
 rag_service/corpus/*.txt
 database/amendis.db
-.streamlit/

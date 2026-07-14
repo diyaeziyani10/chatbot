@@ -32,7 +32,7 @@ class ActionRagFallback(Action):
     ) -> List[Dict[Text, Any]]:
         question = tracker.latest_message.get("text", "")
         try:
-            resp = requests.post(RAG_URL, json={"question": question}, timeout=60)
+            resp = requests.post(RAG_URL, json={"question": question}, timeout=180)
             resp.raise_for_status()
             data = resp.json()
             answer = data.get("answer", "").strip()

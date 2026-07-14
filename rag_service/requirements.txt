@@ -11,6 +11,8 @@ langchain
 langchain-community
 langchain-text-splitters
 langchain-ollama
+langchain-groq
+python-dotenv
 langchain-huggingface
 chromadb
 sentence-transformers

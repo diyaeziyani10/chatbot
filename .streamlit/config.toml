@@ -1,0 +1,7 @@
+# Thème Streamlit — design « 1b » (rouge Amendis/Veolia)
+[theme]
+primaryColor = "#E2001A"           # rouge Amendis (boutons, focus, curseur)
+backgroundColor = "#ffffff"        # fond principal
+secondaryBackgroundColor = "#f6f7f8"  # champs de saisie, surfaces secondaires
+textColor = "#26262b"              # texte
+font = "sans serif"
