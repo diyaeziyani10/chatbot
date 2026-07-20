@@ -67,3 +67,18 @@ nlu:
     - quels sont les tarifs de l'eau ?
     - comment faire une réclamation ?
     - comment déplacer mon compteur ?
+    # Affirmations / réponses aux suggestions du bot : elles doivent partir
+    # au RAG (qui a la mémoire de la conversation), pas être prises pour
+    # des politesses.
+    - oui
+    - oui s'il vous plaît
+    - oui je veux bien
+    - oui je veux savoir les deux
+    - oui pour les deux
+    - je veux les deux
+    - d'accord
+    - ok vas-y
+    - oui montre-moi
+    - bien sûr
+    - pourquoi pas
+    - dis-moi en plus

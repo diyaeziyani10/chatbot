@@ -48,12 +48,19 @@ if "pending" not in st.session_state:
     st.session_state.pending = None  # question en attente de réponse du RAG
 
 
+def sender_id() -> str:
+    """Identifiant de conversation : le nom saisi par l'utilisateur si fourni
+    (→ le bot le reconnaît d'une session à l'autre), sinon un UUID anonyme."""
+    nom = (st.session_state.get("user_field") or "").strip()
+    return nom.lower() if nom else st.session_state.sender_id
+
+
 def send_to_rasa(text: str) -> list[str]:
     """Envoie le message de l'utilisateur à Rasa et renvoie ses réponses."""
     try:
         resp = requests.post(
             RASA_URL,
-            json={"sender": st.session_state.sender_id, "message": text},
+            json={"sender": sender_id(), "message": text},
             timeout=200,
         )
         resp.raise_for_status()
@@ -242,6 +249,14 @@ with col_droite:
     chip_cols = st.columns(2)
     for i, sujet in enumerate(SUJETS_FREQUENTS):
         chip_cols[i % 2].button(sujet, on_click=queue_message, args=(sujet,))
+
+    # Identification facultative → active la mémoire persistante du bot
+    # (il se souviendra des échanges d'une session à l'autre)
+    st.text_input(
+        "🪪 Votre nom ou n° de client — pour que l'assistant se souvienne de vous",
+        key="user_field",
+        placeholder="optionnel, ex : karim123",
+    )
 
 # --- Bandeau des fonctionnalités (4 cartes, comme le design) ---
 st.markdown("""
