@@ -1,12 +1,5 @@
 # Les changements « intelligence » — explication détaillée
 
-> Session du 19-20 juillet 2026 (commit `fin2`), en réponse aux remarques de
-> l'encadrant : « le bot ne doit pas être un simple moteur de recherche,
-> il doit avoir une intelligence dedans ».
->
-> Ce document explique CHAQUE modification : le problème constaté, la
-> solution choisie, et le concept derrière — pour pouvoir tout expliquer
-> et défendre en soutenance.
 
 ---
 

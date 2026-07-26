@@ -82,3 +82,40 @@ nlu:
     - bien sûr
     - pourquoi pas
     - dis-moi en plus
+
+- intent: incompris
+  # Charabia / saisie au clavier sans signification : ne doit PAS être pris
+  # pour une politesse. Déclenche une demande de reformulation (rules.yml).
+  examples: |
+    - asdf
+    - asdnsabdi
+    - dbqibdqbd
+    - dheiwqhdiqe
+    - qwerty
+    - azerty
+    - hjklm
+    - xxxxxx
+    - aaaaaaa
+    - zzzzzz
+    - mdslkfj
+    - qsdfghj
+    - wxcvbn
+    - iuytre
+    - lkjhgf
+    - ncbvhd
+    - poiuyt
+    - fjdksla
+    - blablabla
+    - jsp jsp jsp
+    - ????
+    - .....
+    - iam
+    - asd
+    - jkl
+    - aze
+    - qsd
+    - wxc
+    - hjk
+    - dfg
+    - uio
+    - zer

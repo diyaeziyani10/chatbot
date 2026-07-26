@@ -42,13 +42,8 @@ class ActionRagFallback(Action):
             resp.raise_for_status()
             data = resp.json()
             answer = data.get("answer", "").strip()
-            sources = [s for s in data.get("sources", []) if s][:3]
             if answer:
-                # Traçabilité : on joint les pages amendis.ma utilisées,
-                # sauf si le RAG n'a rien trouvé (sources non pertinentes).
-                if sources and "je n'ai pas trouvé" not in answer.lower():
-                    liens = "\n".join(f"• {s}" for s in sources)
-                    answer += f"\n\n🔗 Pour en savoir plus :\n{liens}"
+                # Réponse directe, sans liens (conversation plus naturelle).
                 dispatcher.utter_message(text=answer)
             else:
                 dispatcher.utter_message(

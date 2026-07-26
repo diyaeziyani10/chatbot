@@ -28,6 +28,12 @@ rules:
   - intent: question_documentaire
   - action: action_rag_fallback
 
+# Charabia / saisie sans sens → demande de reformulation
+- rule: Message incompris
+  steps:
+  - intent: incompris
+  - action: utter_incompris
+
 # Phrase inconnue (confiance sous le seuil) → RAG aussi (filet de sécurité)
 - rule: Fallback vers le RAG
   steps:

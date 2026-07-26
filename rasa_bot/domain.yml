@@ -11,6 +11,7 @@ intents:
   - au_revoir
   - remercier
   - question_documentaire  # intention « panier » : toute question Amendis → RAG
+  - incompris              # charabia / saisie sans sens → demande de reformulation
   - nlu_fallback           # confiance faible (phrase inconnue) → RAG aussi
 
 responses:
@@ -30,6 +31,11 @@ responses:
 
   utter_remercier:
     - text: "Je vous en prie ! Puis-je vous aider pour autre chose ?"
+
+  utter_incompris:
+    - text: >-
+        Je n'ai pas bien compris votre message 🤔 Pouvez-vous reformuler ?
+        Je peux vous aider sur vos factures, abonnements, fuites, agences...
 
   
 actions:

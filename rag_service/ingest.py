@@ -66,7 +66,18 @@ def main() -> None:
         chunk_overlap=120,
         separators=["\n\n", "\n", ". ", " "],
     )
-    chunks = splitter.split_documents(docs)
+    # Les pages « liste » (les agences) sont découpées LIGNE PAR LIGNE : une
+    # agence par fragment. Sinon un nom précis (« agence Martil ») se noie
+    # dans une longue liste et la recherche par similarité ne le retrouve pas.
+    liste_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=120, chunk_overlap=0, separators=["\n"],
+    )
+    chunks = []
+    for d in docs:
+        if "nos-agences" in d.metadata.get("source", ""):
+            chunks += liste_splitter.split_documents([d])
+        else:
+            chunks += splitter.split_documents([d])
 
     # Contextualisation : chaque fragment commence par le titre de sa page,
     # pour que la recherche par similarité sache d'où il vient (sinon un
