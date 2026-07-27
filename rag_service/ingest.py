@@ -54,7 +54,10 @@ def load_documents():
     return docs
 
 
-def main() -> None:
+def build_chunks() -> list:
+    """Construit les fragments du corpus (SANS les vectoriser). Partagé par
+    l'ingestion (pour ChromaDB) ET par le service RAG (pour la recherche
+    BM25 par mots-clés). Rapide : aucune embedding ici."""
     docs = load_documents()
     if not docs:
         raise SystemExit(
@@ -85,8 +88,12 @@ def main() -> None:
     for c in chunks:
         titre = page_title(c.metadata.get("source", ""))
         c.page_content = f"[Page Amendis : {titre}]\n{c.page_content}"
+    return chunks
 
-    print(f"{len(docs)} pages → {len(chunks)} fragments")
+
+def main() -> None:
+    chunks = build_chunks()
+    print(f"{len(chunks)} fragments")
 
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     Chroma.from_documents(

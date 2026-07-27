@@ -23,6 +23,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from langchain_community.vectorstores import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -152,6 +153,9 @@ Tu ne traites plusieurs options QUE si la personne le dit EXPLICITEMENT \
 courte liée à sa situation (abonnement eau → proposer l'électricité ; \
 paiement → espace client...). Une seule, brève, jamais inventée. Aucune \
 suggestion après un refus hors-sujet ni après une question de clarification.
+8. MESSAGE INCOMPRÉHENSIBLE (suite de lettres sans aucun sens : « asdf », \
+« iam », « dbqibd »...) : ne cherche pas et ne devine pas. Réponds simplement : \
+« Je n'ai pas bien compris votre message 🤔 Pouvez-vous reformuler ? »
 
 INFORMATIONS DISPONIBLES :
 {context}"""
@@ -161,10 +165,29 @@ app = FastAPI(title="Service RAG Amendis")
 # Chargés une seule fois au démarrage du service
 embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 vectorstore = Chroma(persist_directory=CHROMA_DIR, embedding_function=embeddings)
-# MMR : privilégie des fragments PERTINENTS mais VARIÉS (évite 4 fragments
-# de la même page) ; fetch_k=20 candidats, 6 retenus.
-retriever = vectorstore.as_retriever(
-    search_type="mmr", search_kwargs={"k": 8, "fetch_k": 25}
+
+# ---------------------------------------------------------------------------
+# RECHERCHE HYBRIDE : deux approches complémentaires fusionnées.
+#   • Vectorielle (MMR)  : trouve par le SENS (paraphrases, synonymes) —
+#     forte quand la formulation diffère du texte.
+#   • BM25 (mots-clés)   : trouve par les MOTS EXACTS (noms propres, chiffres,
+#     « Martil », un numéro...) — rattrape ce que l'embedding rate sur les
+#     termes rares. C'est le correctif au problème « nom d'agence noyé ».
+# L'EnsembleRetriever fusionne les deux classements (Reciprocal Rank Fusion).
+# BM25 est quasi gratuit en mémoire (pas de modèle, juste un index de mots).
+# ---------------------------------------------------------------------------
+from langchain_classic.retrievers import EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
+
+from rag_service.ingest import build_chunks
+
+_vector_retriever = vectorstore.as_retriever(
+    search_type="mmr", search_kwargs={"k": 6, "fetch_k": 25}
+)
+_bm25_retriever = BM25Retriever.from_documents(build_chunks())
+_bm25_retriever.k = 6
+retriever = EnsembleRetriever(
+    retrievers=[_bm25_retriever, _vector_retriever], weights=[0.5, 0.5]
 )
 # Chaîne de secours LLM, essayée dans l'ordre à CHAQUE requête :
 # 1. Groq 70b (qualité maximale) — quota gratuit : 100 000 tokens/jour
@@ -176,9 +199,13 @@ LLMS: list = []
 if os.environ.get("GROQ_API_KEY"):
     from langchain_groq import ChatGroq
 
-    LLMS.append((f"groq/{GROQ_MODEL}", ChatGroq(model=GROQ_MODEL, temperature=0)))
+    # max_retries=0 : en cas de limite Groq, on ÉCHOUE VITE et on bascule sur
+    # le modèle suivant, au lieu de réessayer 2 fois avec attente (~5-8 s).
+    LLMS.append((f"groq/{GROQ_MODEL}",
+                 ChatGroq(model=GROQ_MODEL, temperature=0, max_retries=0)))
     LLMS.append(("groq/llama-3.1-8b-instant",
-                 ChatGroq(model="llama-3.1-8b-instant", temperature=0)))
+                 ChatGroq(model="llama-3.1-8b-instant", temperature=0,
+                          max_retries=0)))
 LLMS.append((f"ollama/{OLLAMA_MODEL}", ChatOllama(model=OLLAMA_MODEL, temperature=0)))
 
 LLM_INFO = " -> ".join(nom for nom, _ in LLMS)
@@ -197,6 +224,23 @@ def generer(template, variables: dict):
         except Exception as exc:  # quota épuisé, réseau, service éteint...
             derniere_erreur = exc
     raise RuntimeError(f"Aucun LLM disponible : {derniere_erreur}")
+
+
+def generer_stream(template, variables: dict):
+    """Comme generer(), mais renvoie les tokens AU FUR ET À MESURE (streaming).
+    Essaie la chaîne de secours : on stream le premier modèle qui démarre."""
+    for _, modele in LLMS:
+        try:
+            flux = (template | modele).stream(variables)
+            premier = next(flux)          # peut lever si le modèle échoue
+            yield premier.content
+            for chunk in flux:
+                yield chunk.content
+            return
+        except Exception:
+            continue  # ce modèle a échoué → on tente le suivant
+    yield ("Le service est momentanément surchargé. "
+           "Merci de réessayer dans quelques instants.")
 prompt = ChatPromptTemplate.from_messages(
     [("system", SYSTEM_PROMPT), ("human", "{history}QUESTION DE L'UTILISATEUR : {question}")]
 )
@@ -247,8 +291,9 @@ class Question(BaseModel):
     user_id: str | None = None  # identifiant fourni par le front (mémoire)
 
 
-@app.post("/ask")
-def ask(q: Question) -> dict:
+def _preparer(q: Question) -> tuple[str, str]:
+    """Étapes communes (rapides) avant la génération : historique de
+    l'utilisateur + recherche des extraits. Renvoie (contexte, historique)."""
     # 1. Historique de CET utilisateur (sessions précédentes incluses)
     hist = charger_historique(q.user_id)
     if hist:
@@ -267,17 +312,83 @@ def ask(q: Question) -> dict:
     q_recherche = question_autonome(q.question, history)
     docs = retriever.invoke(q_recherche)
     context = "\n\n---\n\n".join(d.page_content for d in docs)
-    sources = sorted({d.metadata.get("source", "") for d in docs})
+    return context, history
 
-    # 3. Rédaction : avec la question ORIGINALE + l'historique
-    #    (generer() essaie 70b → 8b → Ollama jusqu'à obtenir une réponse)
+
+@app.post("/ask")
+def ask(q: Question) -> dict:
+    context, history = _preparer(q)
+    # generer() essaie 70b → 8b → Ollama jusqu'à obtenir une réponse
     result = generer(
         prompt, {"context": context, "history": history, "question": q.question}
     )
-
     enregistrer_echange(q.user_id, q.question, result.content)
-    return {"answer": result.content, "sources": sources,
-            "question_recherche": q_recherche}
+    return {"answer": result.content}
+
+
+# ---------------------------------------------------------------------------
+# Filtre de politesses : remplace le rôle résiduel de Rasa. Les salutations,
+# remerciements et au revoir reçoivent une réponse FIXE, instantanée, sans
+# appeler le LLM (gratuit, rapide, pas de consommation de quota). Tout le
+# reste (y compris le charabia) passe au RAG, dont le prompt sait demander
+# une reformulation si le message n'a pas de sens.
+# ---------------------------------------------------------------------------
+POLITESSES = {
+    "saluer": ({"bonjour", "salut", "bonsoir", "hello", "hey", "coucou",
+                "salam", "slm", "cc", "yo", "bjr"},
+               "Bonjour ! 👋 Je suis l'assistant virtuel d'Amendis. Je peux "
+               "vous renseigner sur vos factures, abonnements, fuites, agences… "
+               "Comment puis-je vous aider ?"),
+    "remercier": ({"merci", "merci beaucoup", "mrc", "thanks", "thank you",
+                   "je vous remercie", "merci bien"},
+                  "Je vous en prie ! Puis-je vous aider pour autre chose ?"),
+    "au_revoir": ({"au revoir", "bye", "à bientôt", "a bientot", "ciao",
+                   "bonne journée", "bonne journee", "adieu", "aurevoir"},
+                  "Merci d'avoir utilisé l'assistance Amendis. À bientôt ! 👋"),
+}
+
+
+def politesse(message: str) -> str | None:
+    """Réponse fixe si le message EST une simple politesse, sinon None."""
+    m = message.strip().lower().strip("!?.,;: ")
+    for _, (mots, reponse) in POLITESSES.items():
+        if m in mots:
+            return reponse
+    return None
+
+
+@app.post("/chat")
+def chat(q: Question) -> dict:
+    """Point d'entrée non-streaming (compatibilité). Politesse instantanée,
+    sinon délègue à la logique RAG complète."""
+    reponse_fixe = politesse(q.question)
+    if reponse_fixe:
+        return {"answer": reponse_fixe}
+    return ask(q)
+
+
+@app.post("/chat_stream")
+def chat_stream(q: Question):
+    """Point d'entrée STREAMING utilisé par le front : renvoie la réponse
+    token par token (StreamingResponse). Les premiers mots arrivent en ~1 s."""
+    reponse_fixe = politesse(q.question)
+    if reponse_fixe:
+        # politesse : réponse immédiate en un seul morceau
+        return StreamingResponse(iter([reponse_fixe]), media_type="text/plain")
+
+    context, history = _preparer(q)
+
+    def flux():
+        morceaux = []
+        for token in generer_stream(
+            prompt, {"context": context, "history": history, "question": q.question}
+        ):
+            morceaux.append(token)
+            yield token
+        # une fois la réponse complète streamée, on la mémorise
+        enregistrer_echange(q.user_id, q.question, "".join(morceaux))
+
+    return StreamingResponse(flux(), media_type="text/plain")
 
 
 @app.get("/health")

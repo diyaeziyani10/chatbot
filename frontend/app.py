@@ -8,6 +8,7 @@ POST http://localhost:5005/webhooks/rest/webhook
 Usage : streamlit run frontend/app.py
 """
 import base64
+import codecs
 import html as html_lib
 import re
 import uuid
@@ -16,7 +17,11 @@ from pathlib import Path
 import requests
 import streamlit as st
 
-RASA_URL = "http://localhost:5005/webhooks/rest/webhook"
+# Le front parle DIRECTEMENT au service RAG (Rasa a été retiré : son rôle
+# résiduel — politesses, charabia, routage — est désormais assuré par le
+# RAG lui-même via l'endpoint /chat). Gain : ~3-4 s de latence en moins.
+RAG_URL = "http://localhost:8000/chat"
+RAG_STREAM_URL = "http://localhost:8000/chat_stream"
 
 # Images du dossier frontend/assets (fichiers remplaçables par les vôtres)
 ASSETS_DIR = Path(__file__).parent / "assets"
@@ -55,20 +60,26 @@ def sender_id() -> str:
     return nom.lower() if nom else st.session_state.sender_id
 
 
-def send_to_rasa(text: str) -> list[str]:
-    """Envoie le message de l'utilisateur à Rasa et renvoie ses réponses."""
+def stream_from_bot(text: str):
+    """Interroge le service RAG en STREAMING (/chat_stream) et renvoie les
+    tokens au fur et à mesure. Un décodeur UTF-8 incrémental évite de couper
+    un caractère accentué (é, è...) à cheval sur deux morceaux réseau."""
     try:
-        resp = requests.post(
-            RASA_URL,
-            json={"sender": sender_id(), "message": text},
-            timeout=200,
-        )
-        resp.raise_for_status()
-        replies = [m["text"] for m in resp.json() if "text" in m]
-        return replies or ["Désolé, je n'ai pas compris. Pouvez-vous reformuler ?"]
+        with requests.post(
+            RAG_STREAM_URL,
+            json={"question": text, "user_id": sender_id()},
+            stream=True, timeout=200,
+        ) as resp:
+            resp.raise_for_status()
+            decodeur = codecs.getincrementaldecoder("utf-8")()
+            for morceau in resp.iter_content(chunk_size=None):
+                if morceau:
+                    texte = decodeur.decode(morceau)
+                    if texte:
+                        yield texte
     except requests.RequestException:
-        return ["⚠️ Le serveur du chatbot est injoignable. "
-                "Vérifiez que Rasa est bien lancé (rasa run --enable-api)."]
+        yield ("⚠️ Le service est injoignable. Vérifiez que le service RAG "
+               "est lancé (uvicorn rag_service.rag_api:app --port 8000).")
 
 
 def queue_message(text: str) -> None:
@@ -228,13 +239,19 @@ with col_droite:
         classe = "am-user-bulle" if msg["role"] == "user" else "am-bot-bulle"
         return f'<div class="{classe}">{texte}</div>'
 
-    # Ordre inversé : avec column-reverse (CSS), le 1er élément du HTML s'affiche
-    # EN BAS. On met donc le « … » puis les messages du plus récent au plus ancien.
-    parts = []
-    if st.session_state.pending:  # « … » animé, tout en bas du fil
-        parts.append('<div class="am-typing"><span></span><span></span><span></span></div>')
-    parts.extend(bulle(m) for m in reversed(st.session_state.messages))
-    st.markdown(f'<div class="am-msgs">{"".join(parts)}</div>', unsafe_allow_html=True)
+    # Ordre inversé (column-reverse CSS : le 1er élément du HTML s'affiche EN BAS).
+    def messages_html(streaming: str | None = None) -> str:
+        parts = []
+        if streaming is not None:      # réponse en cours d'écriture, tout en bas
+            parts.append(bulle({"role": "assistant", "content": streaming}))
+        elif st.session_state.pending:  # « … » animé en attendant le 1er mot
+            parts.append('<div class="am-typing"><span></span><span></span><span></span></div>')
+        parts.extend(bulle(m) for m in reversed(st.session_state.messages))
+        return f'<div class="am-msgs">{"".join(parts)}</div>'
+
+    # Placeholder : permet de mettre à jour le fil EN DIRECT pendant le streaming.
+    msgs_ph = st.empty()
+    msgs_ph.markdown(messages_html(), unsafe_allow_html=True)
 
     # Zone de saisie (le callback met à jour l'historique AVANT le re-rendu)
     st.markdown('<div class="am-input-wrap">', unsafe_allow_html=True)
@@ -284,12 +301,16 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- Traitement différé : la question est déjà affichée ci-dessus (avec le
-# « … » animé) ; on interroge Rasa maintenant, puis on rafraîchit pour
-# afficher la réponse. La question apparaît donc AVANT la réponse.
+# --- Traitement en STREAMING : la question est déjà affichée (avec le « … »
+# animé) ; on interroge le service RAG et on écrit la réponse mot par mot
+# DANS le fil, en direct, sans attendre la réponse complète.
 if st.session_state.pending:
     question = st.session_state.pending
     st.session_state.pending = None
-    for reply in send_to_rasa(question):
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-    st.rerun()
+    reponse = ""
+    for token in stream_from_bot(question):
+        reponse += token
+        msgs_ph.markdown(messages_html(streaming=reponse), unsafe_allow_html=True)
+    # Réponse complète : on la fige dans l'historique
+    st.session_state.messages.append({"role": "assistant", "content": reponse})
+    msgs_ph.markdown(messages_html(), unsafe_allow_html=True)
