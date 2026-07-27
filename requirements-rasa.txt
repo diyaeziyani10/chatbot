@@ -1,4 +1,0 @@
-# Environnement venv_rasa — moteur NLU & dialogue
-# Rasa 3.6 est la derniere version open source stable (Python 3.10 requis)
-rasa==3.6.21
-rasa-sdk==3.6.2

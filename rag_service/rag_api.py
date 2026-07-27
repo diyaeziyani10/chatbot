@@ -1,17 +1,24 @@
-"""Service RAG — API HTTP locale appelée par l'action de fallback Rasa.
+"""Service RAG — cœur du chatbot Amendis (API FastAPI, port 8000).
 
-POST /ask  {"question": "..."}  →  {"answer": "...", "sources": [...]}
+C'est le seul backend : le front Streamlit l'appelle directement.
 
-Contrainte « zéro hallucination » (cahier des charges, section 4) :
-le prompt impose au LLM de répondre UNIQUEMENT à partir des extraits du
-site amendis.ma retrouvés par similarité, et de dire explicitement
-lorsqu'il ne sait pas.
+Endpoints :
+  POST /chat_stream  {question, user_id}  → réponse en streaming (token/token)
+  POST /chat         {question, user_id}  → réponse d'un bloc (JSON)
+  GET  /health                            → état + LLM actif
 
-LLM : Groq (API cloud, rapide) si une clé GROQ_API_KEY est présente dans
-rag_service/.env ; sinon repli automatique sur Ollama en local (llama3.2).
-Le cahier des charges (section 5.2) autorise les deux : « API cloud ou
-modèle local léger via Ollama ». Seuls la question et des extraits du site
-PUBLIC amendis.ma partent vers le cloud — jamais de donnée client.
+Pour une question, le service :
+  1. charge la mémoire de l'utilisateur (rag_service/memoire/),
+  2. reformule la question si elle dépend du contexte (« oui », « et pour… »),
+  3. cherche les extraits pertinents (recherche hybride BM25 + vectorielle),
+  4. génère la réponse avec un LLM, à partir de ces extraits UNIQUEMENT.
+
+Contrainte « zéro hallucination » : le prompt impose de répondre uniquement
+à partir des extraits du site amendis.ma, et d'avouer quand l'info manque.
+
+LLM : Groq (API cloud, rapide) si GROQ_API_KEY est dans rag_service/.env ;
+sinon repli automatique sur Ollama en local. Seuls la question et des
+extraits du site PUBLIC partent vers le cloud — jamais de donnée client.
 
 Usage : uvicorn rag_service.rag_api:app --port 8000
 """
@@ -327,11 +334,10 @@ def ask(q: Question) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Filtre de politesses : remplace le rôle résiduel de Rasa. Les salutations,
-# remerciements et au revoir reçoivent une réponse FIXE, instantanée, sans
-# appeler le LLM (gratuit, rapide, pas de consommation de quota). Tout le
-# reste (y compris le charabia) passe au RAG, dont le prompt sait demander
-# une reformulation si le message n'a pas de sens.
+# Filtre de politesses : les salutations, remerciements et au revoir reçoivent
+# une réponse FIXE, instantanée, SANS appeler le LLM (gratuit, rapide, pas de
+# consommation de quota). Tout le reste (y compris le charabia) passe au RAG,
+# dont le prompt sait demander une reformulation si le message n'a pas de sens.
 # ---------------------------------------------------------------------------
 POLITESSES = {
     "saluer": ({"bonjour", "salut", "bonsoir", "hello", "hey", "coucou",

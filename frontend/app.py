@@ -1,9 +1,9 @@
-"""Front-end Streamlit — implémentation du design « 1b · Marketing + widget »
-(projet Claude Design : Amendis Chatbot Landing).
+"""Front-end Streamlit — page d'accueil avec le chat intégré dans le widget
+de droite (design « Marketing + widget »).
 
-Page d'accueil marketing avec le chat fonctionnel intégré dans le widget
-de droite. Communique avec Rasa via son API REST :
-POST http://localhost:5005/webhooks/rest/webhook
+Communique avec le service RAG en streaming :
+POST http://localhost:8000/chat_stream  {question, user_id}
+→ réponse renvoyée token par token (affichée en direct).
 
 Usage : streamlit run frontend/app.py
 """
@@ -17,9 +17,8 @@ from pathlib import Path
 import requests
 import streamlit as st
 
-# Le front parle DIRECTEMENT au service RAG (Rasa a été retiré : son rôle
-# résiduel — politesses, charabia, routage — est désormais assuré par le
-# RAG lui-même via l'endpoint /chat). Gain : ~3-4 s de latence en moins.
+# Adresses du service RAG (FastAPI). /chat_stream renvoie la réponse en
+# streaming (token par token) ; /chat la renvoie d'un bloc (compatibilité).
 RAG_URL = "http://localhost:8000/chat"
 RAG_STREAM_URL = "http://localhost:8000/chat_stream"
 
@@ -43,7 +42,7 @@ def image_base64(path: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Logique de conversation (inchangée : Rasa fait tout le travail)
+# État de la conversation (mémoire de session Streamlit)
 # ---------------------------------------------------------------------------
 if "sender_id" not in st.session_state:
     st.session_state.sender_id = str(uuid.uuid4())
