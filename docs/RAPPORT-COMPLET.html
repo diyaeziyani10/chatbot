@@ -1,0 +1,529 @@
+<!DOCTYPE html><html lang='fr'><head><meta charset='utf-8'><title>Rapport Chatbot Amendis</title><style>
+@page { size: A4; margin: 1.8cm 1.6cm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Calibri, Arial, sans-serif; font-size: 10pt;
+  line-height: 1.5; color: #1a2430; }
+h1 { font-size: 19pt; color: #b3001b; margin: 18px 0 6px; }
+h2 { font-size: 13.5pt; color: #b3001b; border-bottom: 2px solid #b3001b;
+  padding-bottom: 3px; margin: 22px 0 8px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #7a0012; margin: 14px 0 5px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #7a0012; margin: 10px 0 4px; }
+p, li { text-align: justify; }
+code { font-family: Consolas, monospace; font-size: 8.6pt; background: #f2f3f5;
+  padding: 1px 4px; border-radius: 3px; color: #a1002a; }
+pre { font-family: Consolas, monospace; font-size: 8.4pt; background: #f6f7f9;
+  border: 1px solid #dcdfe4; border-radius: 5px; padding: 9px 11px;
+  overflow-x: auto; line-height: 1.35; page-break-inside: avoid; }
+pre code { background: none; color: #24303c; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 8.8pt;
+  page-break-inside: avoid; }
+th, td { border: 1px solid #c7ced6; padding: 4px 7px; vertical-align: top; }
+th { background: #f7dfe3; color: #7a0012; text-align: left; }
+tr:nth-child(even) td { background: #fafbfc; }
+blockquote { background: #fff6f7; border-left: 4px solid #b3001b; margin: 10px 0;
+  padding: 6px 12px; color: #333; }
+strong { color: #111; }
+</style></head><body><h1 id="rapport-complet-du-projet-chatbot-amendis">Rapport complet du projet — Chatbot Amendis</h1>
+<h3 id="document-de-reference-pour-la-redaction-du-rapport-de-stage">Document de référence pour la rédaction du rapport de stage</h3>
+<blockquote>
+<p>Ce document retrace <strong>l'intégralité</strong> du projet, du premier jour à la
+livraison : contexte, technologies (avec versions), chronologie détaillée,
+chaque décision d'architecture, chaque bug rencontré et sa correction, et
+l'historique des commits. Il est conçu pour que tu puisses rédiger ton
+rapport de stage sans rien oublier.</p>
+</blockquote>
+<hr />
+<h2 id="0-fiche-didentite-du-projet">0. Fiche d'identité du projet</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Titre</strong></td>
+<td>Conception et développement d'un chatbot d'assistance client</td>
+</tr>
+<tr>
+<td><strong>Entreprise cible</strong></td>
+<td>Amendis (distribution d'eau et d'électricité, assainissement — Tanger &amp; Tétouan ; groupe Veolia)</td>
+</tr>
+<tr>
+<td><strong>Réalisé par</strong></td>
+<td>Diyae ZIYANI</td>
+</tr>
+<tr>
+<td><strong>Encadrant</strong></td>
+<td>Mr. Otman TRIATE</td>
+</tr>
+<tr>
+<td><strong>Type</strong></td>
+<td>Stage d'observation — Proof of Concept (PoC)</td>
+</tr>
+<tr>
+<td><strong>Durée</strong></td>
+<td>4 semaines (début 1er juillet 2026)</td>
+</tr>
+<tr>
+<td><strong>Dépôt Git</strong></td>
+<td>github.com/diyaeziyani10/chatbot</td>
+</tr>
+<tr>
+<td><strong>Objectif</strong></td>
+<td>Un assistant conversationnel qui répond aux questions clients 24h/24, à partir des informations officielles du site www.amendis.ma, sans halluciner</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-le-cahier-des-charges-initial-et-son-evolution">1. Le cahier des charges initial et son évolution</h2>
+<h3 id="11-ce-que-demandait-le-cahier-des-charges-valide-au-depart">1.1 Ce que demandait le cahier des charges (validé au départ)</h3>
+<p>Une architecture <strong>hybride</strong> en trois briques :
+1. Un moteur de <strong>compréhension du langage (NLU)</strong> avec <strong>Rasa Open Source</strong>.
+2. Une <strong>gestion de dialogue déterministe</strong> pour les procédures sensibles, avec <strong>simulation d'une base de données</strong> clients en <strong>SQLite</strong>.
+3. Un <strong>système de secours RAG</strong> (Retrieval-Augmented Generation) avec <strong>LangChain + un LLM</strong> (API cloud ou Ollama local), pour répondre aux questions hors scénario à partir de la <strong>documentation interne</strong> (PDF).
+4. Un <strong>front-end</strong> via Rasa Shell ou <strong>Streamlit</strong>.
+Contraintes : <strong>sécurité</strong> (données clients traitées localement, jamais via le LLM), <strong>zéro hallucination</strong>, <strong>4 semaines</strong>.</p>
+<h3 id="12-les-adaptations-decidees-au-fil-du-projet-points-cles-a-defendre">1.2 Les adaptations décidées au fil du projet (points clés à défendre)</h3>
+<ul>
+<li><strong>Adaptation n°1 (source des connaissances)</strong> : au lieu de PDF internes, on utilise le contenu du <strong>site public www.amendis.ma</strong> (scrapé). Le second site, <strong>www.amendisclient.ma</strong> (espace client), s'est révélé être une <strong>application JavaScript (Angular) derrière authentification</strong> → non scrapable et contenant des <strong>données personnelles</strong>. Il ne sert donc que de <strong>cible de redirection</strong> (« payez sur votre espace client »).</li>
+<li><strong>Adaptation n°2 (abandon de SQLite)</strong> : voir §4. Décision d'aller vers une architecture <strong>100 % documentaire</strong>.</li>
+<li><strong>Adaptation n°3 (abandon de Rasa)</strong> : voir §11. En fin de projet, Rasa a été <strong>entièrement retiré</strong>, le RAG assurant seul tout le travail.</li>
+</ul>
+<p>⚠️ <strong>Ces trois adaptations sont des écarts au cahier des charges validé</strong> (SQLite et Rasa y étaient des livrables). Elles sont <strong>techniquement justifiées</strong> mais doivent être <strong>présentées à l'encadrant</strong> et documentées comme choix d'ingénierie assumés.</p>
+<hr />
+<h2 id="2-les-technologies-utilisees-precises">2. Les technologies utilisées (précises)</h2>
+<h3 id="21-langage-environnement">2.1 Langage &amp; environnement</h3>
+<ul>
+<li><strong>Python 3.10.11</strong> (choix imposé : Rasa 3.6 n'accepte que Python 3.8 à 3.10 ; pas 3.11+).</li>
+<li><strong>Deux environnements virtuels</strong> au départ (<code>venv_rasa</code>, <code>venv_rag</code>) car <strong>conflit de dépendance</strong> : Rasa exige <code>pydantic</code> v1, LangChain exige <code>pydantic</code> v2 → incompatibles dans le même environnement. Après le retrait de Rasa, <strong>un seul venv</strong> (<code>venv_rag</code>) suffit.</li>
+<li><strong>Système</strong> : Windows 11, shell PowerShell.</li>
+<li><strong>Outils</strong> : <code>winget</code> (installation de Python et d'Ollama), <strong>Git/GitHub</strong>, <strong>Edge headless</strong> (génération de PDF de documentation).</li>
+</ul>
+<h3 id="22-briques-du-chatbot-etat-final">2.2 Briques du chatbot (état final)</h3>
+<table>
+<thead>
+<tr>
+<th>Techno</th>
+<th>Version / modèle</th>
+<th>Rôle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>FastAPI</strong> + <strong>uvicorn</strong></td>
+<td>—</td>
+<td>Service RAG (backend, port 8000)</td>
+</tr>
+<tr>
+<td><strong>Streamlit</strong></td>
+<td>—</td>
+<td>Front-end de chat (port 8501)</td>
+</tr>
+<tr>
+<td><strong>LangChain</strong></td>
+<td>1.3.11 (+ <code>langchain-community</code>, <code>langchain-classic</code> 1.0.8, <code>langchain-text-splitters</code>, <code>langchain-huggingface</code>, <code>langchain-ollama</code>, <code>langchain-groq</code>)</td>
+<td>Orchestration du RAG</td>
+</tr>
+<tr>
+<td><strong>ChromaDB</strong></td>
+<td>—</td>
+<td>Base vectorielle (stockage des embeddings)</td>
+</tr>
+<tr>
+<td><strong>sentence-transformers</strong></td>
+<td>modèle <code>paraphrase-multilingual-MiniLM-L12-v2</code> (vecteurs de <strong>384</strong> dimensions, multilingue, ~470 Mo, exécuté en local)</td>
+<td>Embeddings</td>
+</tr>
+<tr>
+<td><strong>rank_bm25</strong></td>
+<td>—</td>
+<td>Recherche par mots-clés (BM25)</td>
+</tr>
+<tr>
+<td><strong>requests</strong>, <strong>beautifulsoup4</strong>, <strong>lxml</strong></td>
+<td>—</td>
+<td>Scraping de www.amendis.ma</td>
+</tr>
+<tr>
+<td><strong>python-dotenv</strong></td>
+<td>—</td>
+<td>Chargement de la clé API depuis <code>.env</code></td>
+</tr>
+<tr>
+<td><strong>Groq</strong> (API cloud)</td>
+<td><code>llama-3.3-70b-versatile</code> (principal), <code>llama-3.1-8b-instant</code> (secours)</td>
+<td>Génération des réponses (LLM)</td>
+</tr>
+<tr>
+<td><strong>Ollama</strong> (local)</td>
+<td><code>llama3.2</code> (~2 Go)</td>
+<td>LLM de dernier secours (hors-ligne)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-technologies-utilisees-puis-retirees-a-mentionner-dans-lhistorique">2.3 Technologies utilisées puis RETIRÉES (à mentionner dans l'historique)</h3>
+<ul>
+<li><strong>Rasa Open Source 3.6.21</strong> + <strong>rasa-sdk 3.6.2</strong> : moteur NLU (DIETClassifier) + gestion de dialogue. Retiré en fin de projet.</li>
+<li><strong>SQLite</strong> : simulation de la base clients. Abandonné (architecture 100 % documentaire).</li>
+</ul>
+<hr />
+<h2 id="3-architecture-evolution-en-trois-grandes-versions">3. Architecture — évolution en trois grandes versions</h2>
+<h3 id="version-1-hybride-complete-rasa-sqlite-rag">Version 1 — Hybride complète (Rasa + SQLite + RAG)</h3>
+<pre><code>Streamlit → Rasa (5005) → serveur d'actions (5055) → SQLite (données clients)
+                                                    → RAG FastAPI (8000) → Ollama
+</code></pre>
+<ul>
+<li>Rasa reconnaît 8 intentions, extrait le n° de contrat, interroge SQLite pour les factures, et bascule vers le RAG pour les questions hors scénario.</li>
+</ul>
+<h3 id="version-2-100-documentaire-rasa-minimal-sans-sqlite">Version 2 — 100 % documentaire (Rasa minimal, sans SQLite)</h3>
+<pre><code>Streamlit → Rasa (5005) → serveur d'actions (5055) → RAG FastAPI (8000) → Groq/Ollama
+</code></pre>
+<ul>
+<li>Rasa ne gère plus que 3 politesses + une intention « panier » <code>question_documentaire</code> + le fallback. Tout le métier part au RAG. SQLite supprimée.</li>
+</ul>
+<h3 id="version-3-rag-pur-rasa-retire-version-livree">Version 3 — RAG pur (Rasa retiré) — <strong>VERSION LIVRÉE</strong></h3>
+<pre><code>Streamlit (8501) → RAG FastAPI (8000) → Groq (70b → 8b) → Ollama
+                        │
+                        ├─ ChromaDB (recherche hybride BM25 + vectorielle)
+                        └─ mémoire/ (par utilisateur)
+</code></pre>
+<ul>
+<li><strong>2 services seulement.</strong> Le RAG assure tout : politesses (filtre mots-clés), compréhension, recherche, mémoire, génération en streaming.</li>
+</ul>
+<hr />
+<h2 id="4-chronologie-detaillee-phase-par-phase">4. Chronologie détaillée (phase par phase)</h2>
+<h3 id="phase-0-cadrage-et-verification-de-faisabilite">Phase 0 — Cadrage et vérification de faisabilité</h3>
+<ul>
+<li>Lecture du cahier des charges. Décision d'utiliser les deux sites Amendis comme source.</li>
+<li><strong>Vérification des sites</strong> (avec l'outil de récupération web) :</li>
+<li><code>www.amendis.ma/fr</code> : HTML <strong>rendu côté serveur</strong>, scrapable, FAQ riche (lecture de facture, calcul de consommation, résiliation…). → <strong>source du corpus RAG</strong>.</li>
+<li><code>www.amendisclient.ma</code> : <strong>SPA Angular</strong>, HTML quasi vide, contenu généré côté client <strong>après login</strong>, données personnelles. → <strong>non scrapable</strong> ; devient cible de redirection.</li>
+<li><strong>Conclusion</strong> : amendisclient.ma est exactement ce que la SQLite devait <em>simuler</em> (données clients).</li>
+</ul>
+<h3 id="phase-1-mise-en-place-de-lenvironnement">Phase 1 — Mise en place de l'environnement</h3>
+<ul>
+<li><strong>Aucun Python installé</strong> sur la machine. Installation de <strong>Python 3.10.11</strong> via winget.</li>
+<li><strong>BUG n°1 — Disque plein</strong> : le disque C: n'avait que <strong>0,2 Go libres</strong> sur 237 → <code>pip install</code> échoue avec <code>OSError: [Errno 28] No space left on device</code>. Après libération d'espace (~15 Go), réinstallation OK.</li>
+<li>Création des <strong>deux venvs</strong> et installation des dépendances (Rasa d'un côté, LangChain/RAG de l'autre).</li>
+<li>Découverte et documentation du <strong>conflit pydantic v1/v2</strong> → justification des deux venvs et du RAG en micro-service HTTP séparé.</li>
+</ul>
+<h3 id="phase-2-premiere-version-rasa-sqlite-rag">Phase 2 — Première version (Rasa + SQLite + RAG)</h3>
+<p>Fichiers Rasa créés :
+- <code>config.yml</code> : pipeline NLU (WhitespaceTokenizer → RegexFeaturizer → RegexEntityExtractor → LexicalSyntacticFeaturizer → 2× CountVectorsFeaturizer dont un en <em>char n-grams 1-4</em> pour la <strong>tolérance aux fautes</strong> → DIETClassifier 100 époques → FallbackClassifier <strong>seuil 0,6</strong>) + policies (Memoization, Rule, TED).
+- <code>domain.yml</code> : <strong>8 intentions</strong> (saluer, au_revoir, remercier, consulter_facture, payer_facture, signaler_fuite, donner_numero_contrat, nlu_fallback), l'entité + slot <code>numero_contrat</code>, le formulaire <code>facture_form</code>, les réponses, 4 actions.
+- <code>data/nlu.yml</code> (exemples FR + regex <code>5\d{5}</code> pour le n° de contrat), <code>data/rules.yml</code>, <code>data/stories.yml</code>.
+- <code>actions/actions.py</code> : 4 classes — <code>ValidateFactureForm</code>, <code>ActionConsulterFacture</code> (requête SQL <strong>paramétrée</strong>, anti-injection), <code>ActionSignalerFuite</code>, <code>ActionRagFallback</code>.
+- <code>endpoints.yml</code>, <code>credentials.yml</code>.</p>
+<p>Base de données :
+- <code>database/init_db.py</code> : 3 tables (<code>clients</code>, <code>factures</code>, <code>incidents</code>), <strong>5 clients</strong> et <strong>7 factures</strong> fictifs.</p>
+<p>RAG :
+- <code>scraper.py</code> : crawler de www.amendis.ma (pages graines FAQ/accueil, liens internes <code>/fr</code>, <strong>max 60 pages</strong>, 1 req/s).
+- <code>ingest.py</code> : découpage en fragments <strong>800 caractères / chevauchement 120</strong>, embeddings <code>paraphrase-multilingual-MiniLM-L12-v2</code>, stockage ChromaDB.
+- <code>rag_api.py</code> : FastAPI <code>/ask</code>, recherche <strong>MMR</strong>, prompt strict anti-hallucination, LLM <strong>Ollama llama3.2</strong>.
+- <code>frontend/app.py</code> : chat Streamlit ↔ API REST Rasa.
+- <strong>PDF de documentation</strong> généré (Edge headless) : <code>docs/Documentation-Chatbot-Amendis.pdf</code>.</p>
+<p>Bugs de cette phase :
+- <strong>BUG n°2 — Scraper <code>UnicodeEncodeError: latin-1</code></strong> : le <code>User-Agent</code> contenait un tiret long (« — »), caractère non-ASCII interdit dans un <strong>en-tête HTTP</strong> (les en-têtes doivent être en latin-1/ASCII). Corrigé (tiret simple).
+- <strong>BUG n°3 — <code>charmap codec can't encode →</code></strong> : la console Windows (cp1252) ne peut pas afficher la flèche « → » utilisée dans un <code>print</code>. Contourné avec <code>PYTHONIOENCODING=utf-8</code>.
+- <strong>BUG n°4 — Télémétrie Rasa <code>charmap</code></strong> : erreur bénigne au 1er lancement, se désactive seule.
+- Entraînement Rasa : <strong>100 % de précision</strong> (i_acc=1, e_f1=1) — normal avec peu d'exemples bien séparés (modèle « trop sûr de lui »).</p>
+<h3 id="phase-3-apprentissage-mode-tuteur">Phase 3 — Apprentissage (mode tuteur)</h3>
+<ul>
+<li>Choix pédagogique : <strong>comprendre</strong> Rasa plutôt que générer du code non maîtrisé (objectif soutenance).</li>
+<li>Notions acquises : la <strong>boucle Rasa</strong> (message → NLU → policy → action → réponse) ; <code>domain.yml</code> = inventaire, <code>rules.yml</code> = câblage, <code>nlu.yml</code> = exemples ; le <strong>pipeline NLU</strong> ; les <strong>policies</strong>.</li>
+<li>Test en direct avec <code>rasa shell nlu</code> :</li>
+<li>« bonjour » → <code>saluer</code> à 99,99 %.</li>
+<li>« je voudrais régler ce que je dois » (jamais vu) → reconnu à 99,7 %, <strong>mais classé <code>consulter_facture</code></strong> (à cause du mot « dois » présent dans les exemples de cette intention) alors que le sens était « payer ». <strong>Leçon clé : une confiance élevée ≠ une bonne réponse</strong> ; le classificateur reconnaît ce qui <em>ressemble</em> à ses exemples.</li>
+</ul>
+<h3 id="phase-4-decision-darchitecture-100-documentaire-sans-sqlite">Phase 4 — Décision d'architecture : 100 % documentaire (sans SQLite)</h3>
+<ul>
+<li><strong>Constat</strong> : les données personnelles (facture d'un client) ne peuvent <strong>pas</strong> venir du site (login + données privées + interdiction de les envoyer au LLM). La SQLite ne fait que les <em>simuler</em>.</li>
+<li><strong>Décision de Diyae</strong> : passer en <strong>100 % documentaire</strong> — toutes les intentions répondent depuis amendis.ma via le RAG ; pour « ma facture », le bot explique la démarche et redirige vers l'espace client.</li>
+<li><strong>Ce qui a été supprimé</strong> : dossier <code>database/</code>, <code>facture_form</code>, entité/slot <code>numero_contrat</code>, <code>RegexEntityExtractor</code>, <code>EntitySynonymMapper</code>, les actions SQLite, les intentions <code>consulter_facture</code>/<code>payer_facture</code>/<code>signaler_fuite</code>/<code>donner_numero_contrat</code>.</li>
+<li><strong>Ce qui reste dans Rasa</strong> : 3 politesses + intention « panier » <code>question_documentaire</code> + <code>nlu_fallback</code>. <strong>Seuil du FallbackClassifier monté de 0,6 à 0,75.</strong></li>
+<li><strong>BUG/PIÈGE n°5 — le softmax</strong> : « comment payer ma facture » était classé <code>remercier</code> avec <strong>0,94</strong> de confiance ! Un classificateur softmax <strong>répartit 100 % de sa confiance entre les classes connues</strong> → une question métier peut être classée « politesse » avec une confiance ÉLEVÉE, donc le seuil de fallback (qui ne protège que des confiances BASSES) ne la rattrape pas. <strong>Solution</strong> : l'intention « panier » <code>question_documentaire</code> qui capte tout le métier et le route vers le RAG.</li>
+</ul>
+<h3 id="phase-5-travail-multi-pc-rag-de-bout-en-bout">Phase 5 — Travail multi-PC &amp; RAG de bout en bout</h3>
+<ul>
+<li><strong>Passation entre PC</strong> : création de <code>REPRISE-PROJET.md</code> (contexte complet). Le projet est sur GitHub.</li>
+<li><strong>Point important</strong> : Git ne transporte <strong>pas</strong> les venvs (chemins absolus codés en dur → cassés si copiés) ni les fichiers générés (modèle Rasa, corpus, base ChromaDB) — ils sont <strong>régénérés</strong> sur chaque PC via des commandes. Seul le <strong>code source</strong> est versionné.</li>
+<li>Transformation documentaire réalisée (commit <code>cbdd750</code>).</li>
+<li>Sur la machine finale : <code>git pull</code>, réentraînement Rasa, <strong>re-vectorisation → 236 fragments</strong>, installation d'<strong>Ollama + llama3.2</strong>.</li>
+<li>Améliorations d'<code>ingest.py</code> : filtrage du <strong>bruit de navigation</strong> (<code>NOISE_LINES</code>) et <strong>contextualisation</strong> (chaque fragment préfixé par <code>[Page Amendis : &lt;titre&gt;]</code>).</li>
+</ul>
+<h3 id="phase-6-premiers-bugs-de-fonctionnement-passage-a-groq">Phase 6 — Premiers bugs de fonctionnement &amp; passage à Groq</h3>
+<ul>
+<li><strong>BUG n°6 — Timeout Ollama</strong> : le tout premier message échouait (« service momentanément indisponible ») car le <strong>chargement à froid</strong> des 2 Go de llama3.2 dépassait le <code>timeout=60</code> de <code>actions.py</code>. Corrigé → 180 s (et le front Streamlit → 200 s). <em>Leçon : chaque maillon amont doit être plus patient que le maillon aval.</em></li>
+<li><strong>BUG n°7 — Lenteur (~2 minutes/réponse)</strong> : diagnostic mesuré → recherche ~1 s, <strong>génération LLM = le goulot</strong> (Ollama sur CPU, machine à <strong>7,7 Go de RAM</strong>). Aucune optimisation locale ne pouvait atteindre 5-10 s.</li>
+<li><strong>Passage à Groq</strong> (API cloud gratuite) : modèle <strong><code>llama-3.3-70b-versatile</code></strong> → réponses en <strong>~1-2 s</strong>, qualité en hausse (modèle ~20× plus gros). <strong>Clé API dans <code>rag_service/.env</code> (non versionné)</strong>, repli automatique sur Ollama. Conforme au cahier des charges (« API cloud ou Ollama »).</li>
+<li><strong>BUG n°8 — Prompt trop prudent</strong> : le bot répondait « je n'ai pas trouvé » même avec les bons extraits sous les yeux (petit modèle appliquant trop strictement la règle refuge). Corrigé : <strong>mission positive d'abord</strong>, phrase refuge en dernier recours.</li>
+</ul>
+<h3 id="phase-7-interface-professionnelle-design">Phase 7 — Interface professionnelle (design)</h3>
+<ul>
+<li>Design conçu dans <strong>Claude Design</strong> (projet « Amendis Chatbot Landing »), option <strong>« 1b · Marketing + widget »</strong> (landing page + widget de chat fonctionnel intégré).</li>
+<li>Couleurs <strong>extraites de la vraie feuille de style d'amendis.ma</strong> ; couleur signature retenue : <strong>rouge Amendis/Veolia <code>#E2001A</code></strong>. Polices <strong>Space Grotesk + Public Sans</strong>. Thème dans <code>.streamlit/config.toml</code>.</li>
+<li>Logos : <strong>Amendis</strong> (récupéré du site) et <strong>Veolia</strong> (récupéré du projet Design). Placés dans <code>frontend/assets/</code>.</li>
+<li><strong>BUG n°9 — Mauvais logo</strong> : le fichier <code>2.png.webp</code> téléchargé du site était en réalité un <strong>logo Veolia</strong>, pas Amendis → l'en-tête affichait « opéré par VEOLIA » à gauche. Corrigé en téléchargeant le vrai logo Amendis (<code>Amendis_1.jpeg</code>, 335×152).</li>
+<li>Améliorations UX successives :</li>
+<li>suppression du message « Press Enter to submit form » (CSS).</li>
+<li>la <strong>question de l'utilisateur s'affiche instantanément</strong> + indicateur « … » animé, <strong>avant</strong> la réponse (séparation en deux temps).</li>
+<li><strong>barre de défilement interne</strong> au chat (astuce CSS <code>flex-direction: column-reverse</code> → le fil reste collé en bas, la page ne s'allonge plus).</li>
+</ul>
+<h3 id="phase-8-intelligence-remarques-de-lencadrant">Phase 8 — « Intelligence » (remarques de l'encadrant)</h3>
+<p>L'encadrant juge le bot « <strong>simple moteur de recherche</strong> », sans intelligence. Tests précis qu'il a faits :
+- « donne-moi les documents pour un abonnement à <strong>Maroc Telecom</strong> » → le bot <strong>cherchait</strong> dans Amendis et répondait « pas trouvé » au lieu de <strong>comprendre</strong> que c'est hors domaine.
+- « <strong>qui es-tu</strong> ? » → le bot présentait <em>Amendis</em> (la page « à propos ») au lieu de se présenter <em>lui-même</em>.
+- Attente d'une <strong>mémoire</strong> (une question posée hier, reposée aujourd'hui).</p>
+<p><strong>Solutions apportées</strong> (commit <code>fin2</code> = <code>aaf2acc</code>) :
+1. <strong>Prompt « persona »</strong> (contrat de comportement) avec des <strong>cas de réaction</strong> numérotés : question Amendis → extraits ; « qui es-tu ? » → identité ; hors-domaine → refus <strong>sans donner d'info</strong> + rebond vers un service Amendis ; info absente → aveu honnête ; suivi de conversation → historique ; ambiguïté → clarification ; <strong>proactivité</strong> (une suggestion en fin de réponse).
+2. <strong>Mémoire persistante par utilisateur</strong> : un fichier JSON par utilisateur dans <code>rag_service/memoire/</code> (identifiant assaini par regex, <strong>50 échanges conservés</strong>, <strong>6 injectés</strong> dans le prompt). Champ <strong>🪪 « votre nom / n° de client »</strong> dans le front (sinon UUID anonyme). Données personnelles <strong>hors Git</strong>.
+3. <strong>Reformulation de question</strong> (« condense question ») : quand un historique existe, un 1er appel LLM transforme un message contextuel (« oui », « et pour l'électricité ? ») en <strong>question autonome</strong> avant la recherche.
+4. <strong>Chaîne de secours LLM à 3 niveaux</strong> (voir bug n°10).</p>
+<p>Bugs découverts pendant cette phase :
+- <strong>BUG n°10 — Quota Groq épuisé (429)</strong> : le quota gratuit du 70b est de <strong>100 000 tokens/jour</strong> (~20-30 questions). En pleine séance de tests → panne. <strong>Solution</strong> : chaîne de secours <code>LLMS</code> = Groq 70b → Groq 8b-instant (quota séparé) → Ollama local. La <strong>reformulation</strong> (tâche simple) est confiée au 8b pour économiser le 70b.
+- <strong>BUG n°11 — « qui est Netflix » à moitié refusé</strong> : le bot refusait <em>mais expliquait quand même</em> ce qu'est Netflix. <strong>Corrigé</strong> : règle durcie « refuse SANS donner la moindre information, même si tu connais la réponse ».
+- <strong>BUG n°12 — « offres de travail d'Amendis » : contradiction</strong> : le bot disait « je ne peux pas répondre » puis décrivait la page carrières. Cause : le domaine était défini trop étroitement (« eau et électricité »). <strong>Corrigé</strong> : domaine élargi à <em>tout ce qui concerne Amendis</em> (carrières incluses) + consigne d'<strong>interprétation d'intention</strong>.
+- Plan de test manuel formalisé : <strong><code>TESTS.md</code></strong> (12 sections).</p>
+<h3 id="phase-9-bugs-restants-agences-hallucinations">Phase 9 — Bugs restants, agences, hallucinations</h3>
+<ul>
+<li><strong>BUG n°13 — Charabia classé politesse</strong> : « iam », « asdnsabdi » → classés <code>saluer</code>/<code>remercier</code>. Ajout d'une intention <strong><code>incompris</code></strong> (exemples de charabia) + réentraînement. Après le retrait de Rasa, ce cas est géré par une <strong>règle du prompt</strong> (le LLM demande de reformuler).</li>
+<li><strong>BUG n°14 — « oui » classé <code>saluer</code></strong> : après une suggestion du bot, répondre « oui » donnait « Bonjour ! ». Ajout de <strong>12 exemples d'affirmations</strong> (« oui », « d'accord », « je veux les deux »…) à <code>question_documentaire</code> + réentraînement → « oui » classé à 100 %. Complété par la reformulation (« oui » → question complète).</li>
+<li><strong>Agences absentes du corpus</strong> : le site liste les agences dans une <strong>carte JavaScript</strong> non scrapée. Solution : fichier <strong>manuel</strong> <code>corpus/fr_nos-agences.txt</code> (une trentaine d'agences avec adresses), <strong>versionné</strong> via une exception dans <code>.gitignore</code>. Découpage <strong>une agence par fragment</strong> (sinon un nom précis « se noie » dans la liste).</li>
+<li><strong>BUG n°15 — Hallucination sur les agences</strong> : « et les agences de Fnideq » → le bot <strong>inventait</strong> une adresse (« Rue Ibn Khaldoun » au lieu de la vraie), un <strong>nom d'agence inexistant</strong> (« Agence Al Massira », en fait une adresse d'une autre agence), et des <strong>horaires</strong> absents du corpus. <strong>Corrigé</strong> : règles anti-hallucination durcies — « recopie les données factuelles à l'identique, ne combine jamais deux agences, n'invente ni adresse ni horaire ». Résultat : le bot <strong>avoue</strong> plutôt qu'il n'invente.</li>
+<li><strong>BUG n°16 — Réponses « paresseuses »</strong> : le bot donnait quelques agences puis renvoyait au site. Tentative de correction (« sois exhaustif, ne renvoie jamais au site » + injection de la liste complète) → <strong>effet secondaire : réponses plus lentes et plus de fautes</strong> → <strong>ANNULÉ</strong> (retour à l'état concis).</li>
+</ul>
+<h3 id="phase-10-recherche-hybride-bm25-vectorielle">Phase 10 — Recherche hybride (BM25 + vectorielle)</h3>
+<ul>
+<li>Ajout de <strong>BM25</strong> (recherche par mots-clés) combiné à la recherche vectorielle via <strong><code>EnsembleRetriever</code></strong> (fusion RRF, poids 0,5/0,5, k=6 chacun). Bibliothèques : <code>rank_bm25</code>, <code>langchain-classic</code>.</li>
+<li>La fonction <code>build_chunks()</code> est <strong>partagée</strong> entre <code>ingest.py</code> (pour ChromaDB) et <code>rag_api.py</code> (pour BM25).</li>
+<li><strong>BUG n°17 — Import déplacé</strong> : <code>from langchain.retrievers import EnsembleRetriever</code> échouait (LangChain 1.3 a déplacé la classe vers <code>langchain_classic.retrievers</code>). Corrigé.</li>
+<li><strong>Gain majeur</strong> : les noms propres et chiffres (agences, numéros) que l'embedding ratait sont désormais rattrapés par les mots-clés. « quelles agences à Tétouan ? » liste enfin les vraies agences.</li>
+</ul>
+<h3 id="phase-11-retrait-complet-de-rasa">Phase 11 — Retrait complet de Rasa</h3>
+<ul>
+<li><strong>Constat</strong> : Diyae a <strong>proposé Rasa elle-même</strong> (pas imposé) ; son rôle était devenu résiduel (3 politesses + routage). Retrait décidé pour la <strong>latence</strong> (~3,7 s de Rasa mesurés sur les sauts HTTP + inférence TensorFlow CPU) et la <strong>simplicité</strong>.</li>
+<li><strong>Réalisé</strong> : nouveaux endpoints <code>/chat</code> et <code>/chat_stream</code> dans <code>rag_api.py</code>, <strong>filtre de politesses</strong> par mots-clés (réponse fixe instantanée, sans LLM), charabia géré par le prompt. Le front appelle <strong>directement</strong> le RAG. <strong>Passage de 4 services à 2.</strong> (commit <code>4c87067</code>.)</li>
+</ul>
+<h3 id="phase-12-reponse-en-streaming">Phase 12 — Réponse en streaming</h3>
+<ul>
+<li><strong>Backend</strong> : <code>generer_stream()</code> (streaming via la chaîne de secours) + endpoint <code>/chat_stream</code> (<code>StreamingResponse</code>). <strong><code>max_retries=0</code></strong> sur Groq (échec rapide, plus de réessais lents ~5-8 s).</li>
+<li><strong>Frontend</strong> : affichage token par token via un <strong>placeholder</strong> ; <strong>décodeur UTF-8 incrémental</strong> pour ne pas casser les accents à cheval sur deux morceaux réseau.</li>
+<li><strong>Résultat mesuré</strong> : <strong>premier mot en ~1 s</strong> → ressenti « quasi instantané ».</li>
+<li><strong>BUG n°18 — Pics à 18 s</strong> : diagnostic → repli sur <strong>Ollama</strong> (CPU) déclenché par une limite Groq <em>par minute</em> + les réessais internes du client Groq. Atténué par <code>max_retries=0</code>.</li>
+<li><strong>Note</strong> : le modèle <code>openai/gpt-oss-120b</code> a été envisagé (raisonnement), <strong>testé et jugé décevant</strong> (verbeux, rigide) → on est <strong>resté sur <code>llama-3.3-70b-versatile</code></strong>.</li>
+</ul>
+<h3 id="phase-13-nettoyage-code-livrable">Phase 13 — Nettoyage (code livrable)</h3>
+<ul>
+<li>Suppression de : <code>rasa_bot/</code>, <code>database/</code>, dossier dupliqué <code>chatbot/</code>, <code>requirements-rasa.txt</code>, et l'environnement <code>venv_rasa</code>.</li>
+<li><code>.gitignore</code> nettoyé, docstrings/commentaires actualisés (plus aucune référence à Rasa/SQLite). (commit <code>fc35056</code>.)</li>
+</ul>
+<h3 id="phase-14-pistes-damelioration-recherche-non-implementees">Phase 14 — Pistes d'amélioration (recherche, non implémentées)</h3>
+<p>Étudiées mais <strong>volontairement non intégrées</strong> (deadline / risque) — à mettre en <strong>perspectives d'évolution</strong> du rapport :
+- <strong>Évaluation systématique (RAGAS)</strong> : métriques <em>faithfulness</em> (fidélité = mesure de l'hallucination), <em>context precision/recall</em>, <em>answer relevancy</em>.
+- <strong>Re-ranking</strong> : 2ᵉ étape qui re-classe les fragments avec un <strong>cross-encodeur</strong> (lit question + fragment ensemble, plus précis que les embeddings « bi-encodeur »). Gain +5 à +15 points de pertinence. Via API (Cohere/Jina, ~zéro RAM) ou local (BGE, coûteux en RAM).
+- <strong>RAG-Fusion</strong> : plusieurs reformulations de la question + fusion RRF (extension naturelle de l'EnsembleRetriever déjà en place).
+- <strong>Meilleurs embeddings</strong> (bge-m3, ~2,3 Go) : <strong>bloqué</strong> par la RAM (seulement ~0,6 Go libres sur la machine).
+- <strong>Cache sémantique</strong> : mémoriser les paires question/réponse et répondre instantanément à une question déjà posée (le vrai sens de « bot qui apprend / répond plus vite aux répétitions » — <strong>aucun LLM ne s'entraîne tout seul en direct</strong>).
+- Projets open-source de référence : <code>langchain-ai/rag-from-scratch</code> (techniques), <code>explodinggradients/ragas</code> (évaluation), <code>infiniflow/ragflow</code>, <code>weaviate/Verba</code>.</p>
+<hr />
+<h2 id="5-architecture-finale-livree-fonctionnement-detaille">5. Architecture finale livrée — fonctionnement détaillé</h2>
+<h3 id="51-le-parcours-dun-message">5.1 Le parcours d'un message</h3>
+<ol>
+<li>Le <strong>front</strong> envoie <code>{question, user_id}</code> à <code>POST /chat_stream</code>.</li>
+<li><strong>Filtre politesses</strong> : si « bonjour/merci/au revoir… » → réponse fixe <strong>instantanée, sans LLM</strong>.</li>
+<li><strong>Mémoire</strong> : lecture des 6 derniers échanges de l'utilisateur.</li>
+<li><strong>Reformulation</strong> : si la question dépend du contexte, un 1er LLM la rend autonome.</li>
+<li><strong>Recherche hybride</strong> : BM25 (mots) + vectorielle MMR (sens), fusionnées par RRF → fragments pertinents.</li>
+<li><strong>Génération en streaming</strong> : le LLM (Groq 70b, sinon 8b, sinon Ollama) rédige la réponse <strong>à partir des fragments uniquement</strong>, token par token.</li>
+<li><strong>Front</strong> : affichage en direct.</li>
+<li><strong>Mémoire</strong> : la paire question/réponse est enregistrée.</li>
+</ol>
+<h3 id="52-fichier-par-fichier-etat-livre">5.2 Fichier par fichier (état livré)</h3>
+<ul>
+<li><code>rag_service/scraper.py</code> — crawler de www.amendis.ma → <code>corpus/*.txt</code>.</li>
+<li><code>rag_service/ingest.py</code> — <code>build_chunks()</code> (découpage + contextualisation, agences ligne par ligne) + <code>main()</code> (embeddings → ChromaDB).</li>
+<li><code>rag_service/rag_api.py</code> — <strong>le cœur</strong> : mémoire, prompt-contrat, recherche hybride, chaîne de secours LLM, reformulation, endpoints <code>/chat</code>, <code>/chat_stream</code>, <code>/health</code>.</li>
+<li><code>frontend/app.py</code> — interface Streamlit (design widget, streaming, champ identité, thème rouge).</li>
+<li><code>rag_service/corpus/</code> — texte du site + <code>fr_nos-agences.txt</code> (manuel, versionné).</li>
+<li><code>rag_service/chroma_db/</code>, <code>rag_service/memoire/</code>, <code>rag_service/.env</code> — générés/secrets, <strong>non versionnés</strong> (sauf agences).</li>
+<li><code>.streamlit/config.toml</code> — thème. <code>docs/</code> — documentation. <code>README.md</code>, <code>TESTS.md</code>.</li>
+</ul>
+<h3 id="53-chiffres-cles">5.3 Chiffres-clés</h3>
+<ul>
+<li><strong>61 pages</strong> scrapées + fichier agences → <strong>267 fragments</strong> dans ChromaDB.</li>
+<li>Vecteurs de <strong>384</strong> dimensions. Recherche : <strong>6 fragments</strong> BM25 + 6 vectoriels fusionnés.</li>
+<li>Mémoire : <strong>50</strong> échanges conservés, <strong>6</strong> injectés. Seuil (ex-Rasa) : 0,75.</li>
+<li>Latence : <strong>~1 s</strong> (premier mot en streaming) ; politesses instantanées.</li>
+<li>Quota Groq 70b : <strong>100 000 tokens/jour</strong>.</li>
+</ul>
+<hr />
+<h2 id="6-journal-complet-des-erreurs-corrections-recapitulatif">6. Journal complet des erreurs &amp; corrections (récapitulatif)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Erreur / bug</th>
+<th>Cause</th>
+<th>Correction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>pip</code> « No space left on device »</td>
+<td>Disque C: plein (0,2 Go)</td>
+<td>Libérer ~15 Go</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Scraper <code>UnicodeEncodeError latin-1</code></td>
+<td>Tiret long non-ASCII dans le User-Agent (en-tête HTTP)</td>
+<td>User-Agent en ASCII</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>charmap can't encode →</code></td>
+<td>Console Windows cp1252 vs « → »</td>
+<td><code>PYTHONIOENCODING=utf-8</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Télémétrie Rasa <code>charmap</code></td>
+<td>Console Windows</td>
+<td>Bénin, ignoré</td>
+</tr>
+<tr>
+<td>5</td>
+<td>« payer facture » → <code>remercier</code> 0,94</td>
+<td>Piège du softmax</td>
+<td>Intention « panier » <code>question_documentaire</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Timeout « service indisponible »</td>
+<td>Chargement à froid Ollama &gt; 60 s</td>
+<td>timeout 180/200 s</td>
+</tr>
+<tr>
+<td>7</td>
+<td>~2 min/réponse</td>
+<td>Ollama sur CPU (8 Go RAM)</td>
+<td>Passage à Groq (cloud)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Refus « pas trouvé » à tort</td>
+<td>Prompt trop prudent</td>
+<td>Mission positive d'abord</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Logo Veolia à la place d'Amendis</td>
+<td>Mauvais fichier téléchargé</td>
+<td>Vrai logo Amendis</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Panne quota Groq (429)</td>
+<td>100k tokens/jour épuisés</td>
+<td>Chaîne de secours 70b→8b→Ollama</td>
+</tr>
+<tr>
+<td>11</td>
+<td>« qui est Netflix » à moitié refusé</td>
+<td>Règle hors-domaine trop molle</td>
+<td>Refus SANS aucune info</td>
+</tr>
+<tr>
+<td>12</td>
+<td>« offres travail Amendis » contradictoire</td>
+<td>Domaine trop étroit</td>
+<td>Domaine élargi + interprétation</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Charabia → politesse</td>
+<td>Softmax</td>
+<td>Intention <code>incompris</code> (puis prompt)</td>
+</tr>
+<tr>
+<td>14</td>
+<td>« oui » → <code>saluer</code></td>
+<td>NLU sans affirmations</td>
+<td>12 exemples + reformulation</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Adresses d'agences inventées</td>
+<td>LLM combine des fragments</td>
+<td>Anti-hallucination durci</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Réponses lentes/verbeuses</td>
+<td>Règle « exhaustif » + injection</td>
+<td>Annulé (retour concis)</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Import <code>EnsembleRetriever</code> KO</td>
+<td>Déplacé dans LangChain 1.3</td>
+<td><code>langchain_classic.retrievers</code></td>
+</tr>
+<tr>
+<td>18</td>
+<td>Pics de latence 18 s</td>
+<td>Repli Ollama + réessais Groq</td>
+<td><code>max_retries=0</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-historique-des-commits-git-du-plus-ancien-au-plus-recent">7. Historique des commits Git (du plus ancien au plus récent)</h2>
+<ul>
+<li><code>572634b</code> — tt</li>
+<li><code>63eb2dd</code> — transfert</li>
+<li><code>cbdd750</code> — Transformation architecture 100 % documentaire (suppression SQLite)</li>
+<li><code>d64d5cb</code> — Mise à jour du fichier de passation (fin session PC n°2)</li>
+<li><code>edca8bf</code> — <strong>fin?</strong> (projet initial complet + PDF de documentation)</li>
+<li><code>aaf2acc</code> — <strong>fin2</strong> (intelligence : persona, mémoire, reformulation, secours LLM)</li>
+<li><code>a4e747d</code> — Intelligence conversationnelle + agences (+ anti-hallucination)</li>
+<li><code>4c87067</code> — Retrait de Rasa + recherche hybride + streaming</li>
+<li><code>fc35056</code> — Nettoyage : suppression complète de Rasa + code livrable</li>
+</ul>
+<hr />
+<h2 id="8-reponse-aux-contraintes-du-cahier-des-charges">8. Réponse aux contraintes du cahier des charges</h2>
+<ul>
+<li><strong>Sécurité des données</strong> ✅ : aucune donnée client dans le système (architecture 100 % documentaire) ; seuls la question et des extraits du site <strong>public</strong> partent vers le LLM. Mémoire conversationnelle <strong>locale</strong> uniquement.</li>
+<li><strong>Zéro hallucination</strong> ✅ : le prompt impose de répondre uniquement à partir des extraits, de recopier les faits à l'identique, et d'avouer quand l'info manque (température 0).</li>
+<li><strong>Délai 4 semaines</strong> ✅ : PoC fonctionnel livré.</li>
+<li><strong>Déploiement optionnel</strong> : le service RAG expose une API HTTP → intégrable à un site officiel (le front Streamlit remplaçable par un widget).</li>
+</ul>
+<h2 id="9-limites-connues-a-assumer-dans-le-rapport">9. Limites connues (à assumer dans le rapport)</h2>
+<ul>
+<li><strong>Latence ~1-8 s</strong> selon la charge Groq ; pics possibles si repli sur Ollama (CPU).</li>
+<li><strong>Couverture</strong> limitée aux 61 pages scrapées ; certaines infos (tarifs détaillés, agences en carte JS) manquent ou ont été ajoutées à la main.</li>
+<li>Le charabia <strong>très court</strong> reste parfois ambigu.</li>
+<li>Pas d'<strong>évaluation quantitative</strong> systématique (tests manuels via <code>TESTS.md</code>).</li>
+<li><strong>Embeddings</strong> limités par la RAM (MiniLM au lieu de bge-m3).</li>
+</ul>
+<h2 id="10-perspectives-devolution-pour-le-rapport">10. Perspectives d'évolution (pour le rapport)</h2>
+<p>Évaluation automatisée (RAGAS) · Re-ranking (cross-encodeur) · RAG-Fusion · Cache sémantique (réponses instantanées aux questions répétées) · Meilleurs embeddings sur une machine plus puissante · Déploiement serveur (latence &lt; 1 s) · Widget intégré au site officiel · Retour de Rasa possible pour un vrai dialogue à étapes si de nouveaux scénarios métier apparaissent.</p>
+<hr />
+<h2 id="11-glossaire-concepts-a-maitriser-en-soutenance">11. Glossaire (concepts à maîtriser en soutenance)</h2>
+<ul>
+<li><strong>RAG (Retrieval-Augmented Generation)</strong> : chercher les documents pertinents, puis faire rédiger le LLM à partir d'eux.</li>
+<li><strong>Embedding</strong> : transformation d'un texte en vecteur de nombres capturant son <em>sens</em>.</li>
+<li><strong>Base vectorielle (ChromaDB)</strong> : stocke les vecteurs et retrouve les plus proches d'une requête.</li>
+<li><strong>Recherche hybride</strong> : vectorielle (sens) + BM25 (mots exacts), fusionnées par <strong>RRF</strong> (Reciprocal Rank Fusion).</li>
+<li><strong>Chunking</strong> : découpage des documents en fragments.</li>
+<li><strong>Prompt engineering</strong> : spécifier le comportement du LLM comme un contrat écrit.</li>
+<li><strong>Softmax</strong> : un classificateur répartit 100 % de sa confiance entre les classes connues (d'où des confiances élevées trompeuses).</li>
+<li><strong>Bi-encodeur vs cross-encodeur</strong> : embeddings (question et doc encodés séparément, rapide) vs reranker (ensemble, précis).</li>
+<li><strong>Streaming</strong> : renvoi de la réponse token par token → ressenti quasi instantané.</li>
+<li><strong>Zéro hallucination</strong> : le modèle ne répond que d'après les extraits fournis, jamais d'invention.</li>
+<li><strong>Chaîne de secours (fallback)</strong> : plusieurs LLM en cascade pour ne jamais tomber en panne.
+```</li>
+</ul></body></html>
