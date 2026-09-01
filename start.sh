@@ -1,15 +1,15 @@
 #!/bin/bash
 # Script de démarrage pour Render : lance FastAPI en arrière-plan puis Streamlit
 
-# Lancer le backend FastAPI sur le port 8000 (interne)
-python -m uvicorn rag_service.rag_api:app --host 0.0.0.0 --port 8000 &
+# Démarrer FastAPI en arrière-plan (sur le port 8000)
+echo "Démarrage de l'API FastAPI..."
+uvicorn rag_service.rag_api:app --host 0.0.0.0 --port 8000 &
 
-# Attendre que le backend soit prêt
-sleep 10
+# Attendre un peu que l'API soit prête
+sleep 3
 
-# Lancer Streamlit sur le port fourni par Render ($PORT) ou 8501 par défaut
-streamlit run frontend/app.py \
-  --server.port=${PORT:-8501} \
-  --server.address=0.0.0.0 \
+# Démarrer Streamlit au premier plan (sur le port 7860 pour Hugging Face Spaces)
+echo "Démarrage de l'interface Streamlit..."
+streamlit run frontend/app.py --server.port 7860 --server.address 0.0.0.0 \
   --server.headless=true \
   --browser.gatherUsageStats=false
