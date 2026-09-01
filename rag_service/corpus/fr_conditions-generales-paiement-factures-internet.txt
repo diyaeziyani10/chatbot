@@ -1,0 +1,78 @@
+SOURCE: https://www.amendis.ma/fr/conditions-generales-paiement-factures-internet
+
+Home
+Conditions générales de paiement des factures par Internet
+Conditions générales de paiement des factures par Internet
+Préambule
+En utilisant les portails www.amendis.ma,
+www.amendisclient.ma
+de la Société Amendis pour le paiement en ligne par carte bancaire des factures d’eau et/ou d’électricité, le client est réputé avoir pris connaissance et accepté les
+présentes conditions générales que nous recommandons de lire attentivement. Le « clic » que vous exécuterez après avoir rempli votre demande de paiement constitue la validation de votre demande de paiement et vaudra acceptation irrévocable des présentes conditions générales. En conséquence, vous ne pouvez payer en ligne vos factures d’eau et/ou d’électricité que si vous acceptez les conditions prévues ci-dessous
+1/ Objet
+Les présentes conditions générales visent à définir les relations contractuelles entre Amendis et les clients désirant de payer en ligne par carte bancaire leurs factures d’eau et d’électricité par l’intermédiaire de la plateforme de Maroc télécommerce.
+www.amendis.ma
+www.amendisclient.ma sont des noms de domaine déposés par Amendis.
+2/ Définitions
+Dans la suite du contrat, chacune des expressions mentionnées ci-dessous s entendra
+au sens de sa définition, à savoir :
+« Contrat à distance » : tout contrat concernant des biens ou services entre la Société Amendis et un client dans le cadre d’un système de vente ou de prestations de service à distance organisé par Amendis qui, pour ce contrat, utilisent exclusivement le réseau Internet jusqu’ à la conclusion du contrat.
+« Client » : toute personne physique qui, dans le présent contrat, agit à des fins qui n’entrent pas dans le cadre de son activité professionnelle.
+« Ecran de paiement » : document qui indique les caractéristiques des factures à régler par le client et qui doit être validé par lui via « double clic » pour l’engager.
+« Règlement» : acte par lequel le client paie en ligne ses factures Amendis prennent en compte ce règlement dans leur système de facturation.
+3/ Les caractéristiques des services proposés
+Le système de sécurisation des paiements électroniques mis en place par Maroc Télécommerce est certifié par le centre monétaire interbancaire (CMI) et par les Banques Marocaines ainsi que par les organismes internationaux. Le système Maroc Télécommerce garantit la confidentialité des données bancaires, ledit système est basé sur le cryptage des informations échangées et repose sur des technologies standards et des concepts reconnus éprouvés sur Internet. De plus, les données bancaires du client sont transmises directement au Centre monétaire interbancaire (CMI). Le CMI prend en charge les transactions financières entre le compte bancaire du client et celui d’Amendis. Le client peut donc régler ses factures d’eau et d’électricité d’Amendis « on line » avec sa carte de paiement bancaire en toute sécurité.
+4/ Les technologies et concepts standard utilisés
+Cryptage des données : lors d’une communication en ligne, les informations s’échangent selon plusieurs niveaux de sécurité. Lors du paiement Maroc Télécommerce utilise les technologies de chiffrement les plus répandues et
+sécurisées sur Internet.
+Contrôle obligatoire pour les cartes VISA et les cartes Mastercard
+Mise en place des normes Visa/Mastercard de sécurisation des transactions de paiement par cartes bancaires sur le Net : procédé d’authentification forte des porteurs de carte utilisant des mécanismes par PIN ou password.
+5/ Règlement :
+Le client d Amendis pourra régler ses factures qu il soit un client authentifié ou non Authentifié, une fois sur l’écran de Vos factures à payer , le client peut sélectionner parmi la liste des factures, celle qu’ il souhaite régler. Avant la validation de la demande de paiement, le client pourra modifier la liste des factures à régler en cliquant sur le bouton Annuler ainsi, il retournera à l’écran des factures à payer. Le client confirme sa demande de paiement en cliquant sur le bouton valider le paiement, cette validation constitue une reconnaissance et acceptation par le client des montants des
+factures réglées.
+6/ Montant :
+Les montants à régler mentionnés sur le site sont indiqués en dirham marocain toutes taxes comprises et sont valables au moment de leur consultation par le client. Le règlement d’une facture récente du client ne présume pas le paiement des factures antérieures.
+7/ Exécution du paiement
+Le règlement sera pris en compte immédiatement par le système de facturation du
+marchand.
+Le client pourra consulter par la suite l’historique de ses fractures pour
+s’assurer de la prise en compte du règlement effectué. Le client recevra également un
+e-mail de confirmation de la transaction avec un reçu de paiement.
+En cas d’indisponibilité du service, un message s’affichera pour en informer le client et son règlement ne sera pas pris en compte. Le client pourra par la suite refaire sa demande de règlement, ou en cas de problème le client peut contacter
+Amendis Direct au 0802008000.
+Dès qu il est donné, l’ordre ou l’engagement de payer les factures choisies est irrévocable sous réserve des dispositions de l’article 9 ci-après.
+8/ Mode de paiement
+Pour régler votre facture par carte bancaire, vous choisissez le moyen de paiement parmi ceux
+proposés par Amendis au niveau de l’écran de paiement (ex : visa, Mastercard). Dans ce cas, la remise de la transaction pour débit de votre compte est effectuée dans la journée qui suit la date de la confirmation du règlement. Le paiement par carte bancaire est sécurisé par Maroc Télécommerce qui offre un service de paiement entièrement sécurisé.
+Le Client garantit Amendis qu’ il dispose des autorisations nécessaires pour utiliser le mode de paiement choisi par lui, lors de la validation de la demande de règlement.
+En cas de paiement par carte bancaire, les dispositions relatives à l’utilisation frauduleuse du moyen de paiement prévues dans les conventions conclues entre le Client et l’émetteur de la carte entre Amendis et leur établissement bancaire s’appliquent.
+9/ Confidentialité des données
+Les informations demandées au client sont nécessaires au traitement de sa demande de paiement et elles sont traitées de manière confidentielle.
+Amendis collecte et traite les données personnelles de ses clients dans le cadre de la gestion de sa clientèle. Ces données pourront éventuellement être partagées avec les autorités dans le cadre d’un recours légal et les sous-traitants d’Amendis.
+En application des articles 5 et suivants de la loi n° 09-08, relative à la protection des personnes physiques à l’égard du traitement des données à caractère personnelles, vous bénéficiez d’un droit d’accès, d’un droit de rectification et d’un droit d’opposition. Si vous souhaitez exercer ces droits veuillez-vous adresser au Service Clientèle.
+Ce traitement a fait l’objet d’une demande d’autorisation auprès de la CNDP sous le n°: D – CE – 488 / 2017
+10/ Annuler un règlement effectué par carte bancaire
+A compter de la date de confirmation de votre règlement, le client dispose d’un délai de 7 jours pour faire sa réclamation ou demander l’annulation de règlement. Pour ce faire, il faut contacter le centre service client au 08020 08000.
+11/ Preuve des transactions payés par carte bancaire
+Les données enregistrées par Maroc Télécommerce S.A sur la plate-forme Maroc Télécommerce pour le compte d’ Amendis constituent la preuve de l’ensemble des transactions commerciales passées entre le client et Amendis.
+12/ Responsabilités :
+Amendis assument une obligation de mise en œuvre de moyens pour assurer le bon
+fonctionnement de ce service. Amendis ne sera pas responsable de faute lourde prouvée, de tout dommage ou
+préjudice quel que soit sa nature que subirait le client du fait ou à l’occasion des prestations des services de paiements objets des présentes conditions générales. Maroc Télécommerce S.A en tant que professionnel, a l’obligation par les présentes de garantir au client le bon fonctionnement du service et l’entière sécurité quant aux transactions proposées.
+13/ Usage frauduleux :
+Amendis se réservent le droit de suspendre l’accès à toute personne si elle devait relever des faits laissant présumer la tentative d’utilisation frauduleuse de ses services. Le client en saura informer, le cas échéant.
+14/ Maintenance :
+Amendis pourront être amené à interrompre ou suspendre le service ou une partie du service, à tout moment, pour des raisons de maintenance.
+15/ Force Majeur :
+Amendis ne sont pas tenu pour l’exécution de leur obligation en cas de force majeur au sens de l’article 259 du Dahir des obligations et des contrats. Tout dysfonctionnement du service e-paiement occasionné par le réseau d’Internet ou par les autres intervenants dans la réalisation des prestations objet des présents sont considéré comme des cas de force majeur.
+16/ Accès au service :
+L’accès au service est disponible 24 heures sur 24h, 7 jours sur 7, sauf en cas de force majeur ou d’un événement hors de contrôle d’ Amendis. Amendis se réservent le droit de suspendre le service et d’y mettre fin à tout moment.
+17/ Droit applicable et règlement de différend:
+Les présentes conditions sont soumises au droit marocain. Tout différend relatif à la validité, l’interprétation, l’exécution ou à l’occasion des présents conditions générales et des services e-paiement constituant leur objet, que les parties ne
+parviendraient pas à résoudre à l’amiable dans les 15 jours suivant la notification dudit différend par une partie à l’autre, sera réglé définitivement par le tribunal de commerce. Les présentes conditions générales sont stipulées sans préjudice des droits d’Amendis découlant des cahiers de charges de la gestion déléguée des services de distribution de l’eau et d’assainissement et de la distribution de l’électricité des Wilayas de de Tanger et de Tétouan ou des contrats d’abonnement souscrits par les Clients auprès d’Amendis. Les présentes conditions générales ne dispensent pas le client de ses obligations découlant des cahiers de charges susvisés et de ses contrats d’abonnement souscrits auprès d’Amendis.
+18/ Frais:
+Les services de paiement en ligne sont gratuits. Amendis se réservent le droit de modifier ou de cesser l’offre de ses services gratuits à tout moment.
+19/ Modifications :
+Les présentes conditions générales sont successibles d’être modifiés par Amendis à tout moment, notamment en cas d’évolution technique, légale ou jurisprudentielle ou lors de la mise en place de nouveaux services. Le client se doit de vérifier régulièrement les présentes conditions d’utilisation avant toute transaction.
+20/Substitution :
+En cas de substitution d’ AMENDIS par l’Autorité Délégante, pour quelque motif que ce soit, les droits et les obligations nés du présent contrat continueront à produire leurs effets à l’égard de l’Autorité Délégante, et des clients désireux adhérer au présent mode de règlement de leur factures, et ce, conformément aux dispositions de la Convention de gestion déléguée des services d’assainissement liquide et de distribution d’eau et d’électricité dans les régions de Tanger - Tétouan.
+Haut

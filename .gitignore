@@ -1,10 +1,9 @@
 venv_rag/
 __pycache__/
 *.pyc
-rag_service/chroma_db/
 rag_service/.env
 rag_service/memoire/
-rag_service/corpus/*.txt
-# Exception : les agences sont une donnée MANUELLE (pas issue du scraper),
-# elle doit être versionnée pour ne pas être perdue sur un autre PC.
-!rag_service/corpus/fr_nos-agences.txt
+# PyInstaller artifacts
+build/
+dist/
+*.spec

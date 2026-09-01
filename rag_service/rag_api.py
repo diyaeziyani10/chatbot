@@ -34,10 +34,21 @@ from fastapi.responses import StreamingResponse
 from langchain_community.vectorstores import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_ollama import ChatOllama
+try:
+    from langchain_ollama import ChatOllama
+    HAS_OLLAMA = True
+except ImportError:
+    HAS_OLLAMA = False
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
-BASE_DIR = Path(__file__).resolve().parent
+import sys
+
+if getattr(sys, 'frozen', False):
+    BASE_DIR = Path(sys._MEIPASS) / "rag_service"
+else:
+    BASE_DIR = Path(__file__).resolve().parent
+
 load_dotenv(BASE_DIR / ".env")  # charge GROQ_API_KEY si le fichier existe
 
 CHROMA_DIR = str(BASE_DIR / "chroma_db")
@@ -83,7 +94,7 @@ def enregistrer_echange(user_id: str | None, question: str, reponse: str) -> Non
                  encoding="utf-8")
 EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b")
 
 SYSTEM_PROMPT = """Tu es « l'Assistant virtuel Amendis », le conseiller client \
 d'Amendis (groupe Veolia), qui distribue l'eau et l'électricité et gère \
@@ -168,6 +179,12 @@ INFORMATIONS DISPONIBLES :
 {context}"""
 
 app = FastAPI(title="Service RAG Amendis")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Chargés une seule fois au démarrage du service
 embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
@@ -210,10 +227,11 @@ if os.environ.get("GROQ_API_KEY"):
     # le modèle suivant, au lieu de réessayer 2 fois avec attente (~5-8 s).
     LLMS.append((f"groq/{GROQ_MODEL}",
                  ChatGroq(model=GROQ_MODEL, temperature=0, max_retries=0)))
-    LLMS.append(("groq/llama-3.1-8b-instant",
-                 ChatGroq(model="llama-3.1-8b-instant", temperature=0,
+    LLMS.append(("groq/openai/gpt-oss-20b",
+                 ChatGroq(model="openai/gpt-oss-20b", temperature=0,
                           max_retries=0)))
-LLMS.append((f"ollama/{OLLAMA_MODEL}", ChatOllama(model=OLLAMA_MODEL, temperature=0)))
+if HAS_OLLAMA:
+    LLMS.append((f"ollama/{OLLAMA_MODEL}", ChatOllama(model=OLLAMA_MODEL, temperature=0)))
 
 LLM_INFO = " -> ".join(nom for nom, _ in LLMS)
 llm = LLMS[0][1]  # modèle principal (reformulation : voir llm_condense)

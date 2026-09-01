@@ -1,0 +1,26 @@
+# Environnement Render — Pipeline RAG et front-end
+# (Pas d'Ollama en cloud — Groq uniquement)
+
+# Scraping du site amendis.ma
+requests
+beautifulsoup4
+lxml
+
+# Pipeline RAG
+langchain
+langchain-classic
+langchain-community
+langchain-text-splitters
+langchain-groq
+python-dotenv
+langchain-huggingface
+chromadb
+sentence-transformers
+rank_bm25
+
+# Service HTTP
+fastapi
+uvicorn
+
+# Front-end
+streamlit

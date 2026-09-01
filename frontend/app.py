@@ -22,8 +22,12 @@ import streamlit as st
 RAG_URL = "http://localhost:8000/chat"
 RAG_STREAM_URL = "http://localhost:8000/chat_stream"
 
-# Images du dossier frontend/assets (fichiers remplaçables par les vôtres)
-ASSETS_DIR = Path(__file__).parent / "assets"
+import sys
+
+if getattr(sys, 'frozen', False):
+    ASSETS_DIR = Path(sys._MEIPASS) / "frontend" / "assets"
+else:
+    ASSETS_DIR = Path(__file__).parent / "assets"
 
 SUJETS_FREQUENTS = [
     "Comment payer ma facture ?",
